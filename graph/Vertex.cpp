@@ -67,8 +67,10 @@ void Vertex::deleteNeighbor(const int _neighborID) {
         neighbor_node_sc[_index] = neighbor_node_sc[length - 1];
         adjacentList.pop_back();
         neighbor_node_sc.pop_back();
-        intersectionCntIndex[_index] = intersectionCntIndex[length - 1];
-        intersectionCntIndex.pop_back();
+        if (!is_large) {
+            intersectionCntIndex[_index] = intersectionCntIndex[length - 1];
+            intersectionCntIndex.pop_back();
+        }
         neighborIDAdjacentIndexMap.at(Vertex::adjacentList[_index]) = _index;
     }
 }
