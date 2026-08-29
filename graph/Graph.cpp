@@ -399,6 +399,8 @@ double Graph::query(double eps, int mu) {
     double q_time = 0;
     double q_start, q_end;
     MyVector<dynscan::Vertex *> cores;
+    bool* isCore = new bool[vList.size() + 1]();
+
     for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
         dynscan::Vertex *v = (dynscan::Vertex *) vList[i];
         if(v->getDegree() <= mu){
@@ -408,20 +410,20 @@ double Graph::query(double eps, int mu) {
         int temp_m_C = v->query(eps, mu);
         q_end = getCurrentTime();
         q_time += q_end - q_start;
-        if(temp_m_C == 0){
+        if(temp_m_C < mu){
             continue;
         }
         else{
             core_num += 1;
             m_C += temp_m_C;
             cores.push_back(v);
-
+            isCore[v->id] = true;
         }
     }
     // BFS to get the results (pruned by epsilon)
     int vertex_number = (int) vList.size();
-    int* visited = new int[vertex_number];
-    for (int i = 0; i < vertex_number; ++i) {
+    int* visited = new int[vertex_number + 1];
+    for (int i = 0; i <= vertex_number; ++i) {
         visited[i] = 0;
     }
     queue<dynscan::Vertex *> Q;
@@ -439,8 +441,10 @@ double Graph::query(double eps, int mu) {
             for (auto rit = u->NOPtr->rbegin(); rit != u->NOPtr->rend(); ++rit) {
                 if(rit->first >= eps){
                     int w = rit->second;
+                    if(visited[w]) continue;
                     visited[w] = 1;
                     C.push_back(w);
+                    if(isCore[w]) Q.push(vList[w - 1]);
                 }
                 else{
                     break;
@@ -454,5 +458,9 @@ double Graph::query(double eps, int mu) {
 //        printf("\n");
     }
 //    return C;
+
+    cores.release_space();
+    delete[] visited;
+    delete[] isCore;
     return q_time;
 }
