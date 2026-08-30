@@ -64,15 +64,16 @@ int Graph::removeEdge(int _vID1, int _vID2) {
     v1->deleteNeighbor(_vID2);
     v2->deleteNeighbor(_vID1);
 
-    const int dtIndex = v1->get_instance_index_by_neighbor_id(_vID2);
-    if (dtIndex >= 0) {
-        DTInstance *instance = dtManager.get_instance(dtIndex);
+    const DTBucketElement* dtBucketElement = v1->get_dt_bucket_element_by_neighbor_id(_vID2);
+    if (dtBucketElement) {
+        DTInstance* instance = dtBucketElement->get_dtInstance();
+        DTBucketElement *otherDtBucketElement = instance->get_Another_Bucket_Element(dtBucketElement);
         const int _bucket_index = instance->get_exp();
-        const int element_index_1 = instance->get_element_index(_vID2);
-        const int element_index_2 = instance->get_element_index(_vID1);
-        v1->DeleteElement(_bucket_index, element_index_1);
-        v2->DeleteElement(_bucket_index, element_index_2);
-        dtManager.removeInstance(dtIndex);
+        v1->DeleteElement(_bucket_index, dtBucketElement->get_element_index());
+        v2->DeleteElement(_bucket_index, otherDtBucketElement->get_element_index());
+        v1->set_dt_bucket_element_map_by_neighbor_id(_vID2, nullptr);
+        v2->set_dt_bucket_element_map_by_neighbor_id(_vID1, nullptr);
+        dtManager.removeInstance(instance);
     }
     if ((v1->isLarge() && !v2->isLarge()) ||
         v1->getDegree() > v2->getDegree()) {
@@ -193,8 +194,8 @@ int Graph::insertBetweenSmallAndLarge(dynscan::Vertex *v1,
     int _exp = curInstance->get_exp();
     v1->addDTBucketElement(_exp, curInstance->get_element1(), updateCnt1);
     v2->addDTBucketElement(_exp, curInstance->get_element2(), updateCnt2);
-    v1->set_instance_index_map_by_neighbor_id(v2->id, dtIndex);
-    v2->set_instance_index_map_by_neighbor_id(v1->id, dtIndex);
+    v1->set_dt_bucket_element_map_by_neighbor_id(v2->id, curInstance->get_element1());
+    v2->set_dt_bucket_element_map_by_neighbor_id(v1->id, curInstance->get_element2());
     return 0;
 }
 
@@ -250,8 +251,8 @@ int Graph::insertBetweenLarge(dynscan::Vertex *v1,
     int _exp = curInstance->get_exp();
     v1->addDTBucketElement(_exp, curInstance->get_element1(), updateCnt1);
     v2->addDTBucketElement(_exp, curInstance->get_element2(), updateCnt2);
-    v1->set_instance_index_map_by_neighbor_id(v2->id, dtIndex);
-    v2->set_instance_index_map_by_neighbor_id(v1->id, dtIndex);
+    v1->set_dt_bucket_element_map_by_neighbor_id(v2->id, curInstance->get_element1());
+    v2->set_dt_bucket_element_map_by_neighbor_id(v1->id, curInstance->get_element2());
 #ifdef _DEBUG_
     double end_time = getCurrentTime();
     time_GraphDynamic_insertBetweenLarge += (end_time - start_time);
@@ -289,7 +290,7 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
                 for (int j = 0; j < curVertex->sizeByIndex(i); j++) {
                     DTBucketElement *bucket_element = curVertex->getDTBucketElement(i, j);
                     DTInstance *curInstance =
-                            dtManager.get_instance(bucket_element->get_dt_index());
+                            bucket_element->get_dtInstance();
                     bucket_element->update_cnt(updateCnt);
                     curInstance->receive_report();
                     if (!curInstance->is_round_end()) {
@@ -381,8 +382,8 @@ int Graph::makeLarge(dynscan::Vertex *v) {
         int _exp = newInstance->get_exp();
         v->addDTBucketElement(_exp, newInstance->get_element1(), vUpdateCnt);
         neighbor_v->addDTBucketElement(_exp, newInstance->get_element2(), neighborUpdateCnt);
-        v->set_instance_index_map_by_neighbor_id(neighborID, dtIndex);
-        neighbor_v->set_instance_index_map_by_neighbor_id(vID, dtIndex);
+        v->set_dt_bucket_element_map_by_neighbor_id(neighborID, newInstance->get_element1());
+        neighbor_v->set_dt_bucket_element_map_by_neighbor_id(vID, newInstance->get_element2());
 
     }
     v->set_large();

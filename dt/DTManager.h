@@ -33,11 +33,7 @@ public:
      * @param _indexToDel
      * @return 0 for success, and 1 for failure.
      */
-    void removeInstance(int _indexToDel);
-
-    inline DTInstance *get_instance(const int &_index) {
-        return dtInstanceList[_index];
-    }
+    void removeInstance(DTInstance* instance);
 
     inline int get_size() const {
         return dtInstanceList.size();

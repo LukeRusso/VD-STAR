@@ -29,7 +29,7 @@ namespace dynscan {
 
         hash_map<int, int> neighborIDAdjacentIndexMap;
 
-        hash_map<int, int> neighborID_DTInstanceIndex_Map;
+        hash_map<int, DTBucketElement*> neighborID_DTBucketElement_Map;
 
         // A pointer of the bucket list for managing all the related DT instances.
         DTBucket* dtBucketPtr;
@@ -88,13 +88,13 @@ namespace dynscan {
             intersectionCntManager[index] = _cn;
         }
 
-        inline const int get_instance_index_by_neighbor_id(const int &_neighborID) {
-            const auto &it = neighborID_DTInstanceIndex_Map.find(_neighborID);
-            return it == neighborID_DTInstanceIndex_Map.end() ? -1 : it->second;
+        inline const DTBucketElement* get_dt_bucket_element_by_neighbor_id(const int &_neighborID) {
+            const auto &it = neighborID_DTBucketElement_Map.find(_neighborID);
+            return it == neighborID_DTBucketElement_Map.end() ? nullptr : it->second;
         }
 
-        inline void set_instance_index_map_by_neighbor_id(const int &_neighborID, const int &_index) {
-            neighborID_DTInstanceIndex_Map[_neighborID] = _index;
+        inline void set_dt_bucket_element_map_by_neighbor_id(const int &_neighborID, DTBucketElement* dtBucketElement) {
+            neighborID_DTBucketElement_Map[_neighborID] = dtBucketElement;
         }
 
         /**

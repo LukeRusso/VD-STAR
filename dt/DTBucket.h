@@ -37,6 +37,8 @@ static int pow_2[30] = {1,
                         268435456,
                         536870912};
 
+class DTInstance;
+
 /*
  *  This is the element class of the buckets for DT instances.
  */
@@ -50,28 +52,29 @@ protected:
     int cnt;
     // records the IDs of current vertex's neighbor.
     int neighborID;
-    // We use dtIndex to find the corresponding DT instance.
-    int dtIndex;
     // We use the bucket_index to find the record which bucket it is in.
 //    int bucket_index;
     // store the element index
     unsigned int element_index;
 
+    DTInstance* dtInstance;
+    
 public:
     DTBucketElement() {
         neighborID = -1;
-        dtIndex = -1;
         cnt = 0;
         element_index = 0;
-    }
-
-    inline const int &get_dt_index() const {
-        return dtIndex;
+        dtInstance = nullptr;
     }
 
     inline const int &get_neighbor_id() {
         return neighborID;
     };
+
+    inline DTInstance* get_dtInstance() const {
+        return dtInstance;
+    };
+
 
     inline const int &get_cnt() const {
         return cnt;

@@ -17,6 +17,7 @@ protected:
     // The DT tau. We set tau to negative if the instance receives one report.
     int tau;
     int init_tau;
+    int dtIndex;
 
     int lambda;
     int _exp;
@@ -58,11 +59,13 @@ public:
     }
 
     inline DTBucketElement *
-    get_Another_Bucket_Element(DTBucketElement* _bucketElement) {
+    get_Another_Bucket_Element(const DTBucketElement* _bucketElement) {
         return _bucketElement == &element1 ? &element2 : &element1;
     }
 
     inline const int &get_exp() const { return _exp; };
+
+    inline const int &get_dtIndex() const { return dtIndex; };
 
     inline const int &get_slack() const { return lambda; };
 
@@ -70,6 +73,8 @@ public:
 
     inline void receive_report() { ++msgCnt; }
 
+    inline void set_dtIndex(int dtIdx) { dtIndex = dtIdx; };
+    
 //    inline bool is_mature() const { return tau == 0; }
 
     inline bool is_mature() const { return tau <= init_tau / 10; }
@@ -105,12 +110,13 @@ public:
                       const int &_dtIndex) {
         reset_status(_rho, _union_size_lower_bound, _uptCnt1, _uptCnt2);
 
+        dtIndex = _dtIndex;
         element1.cnt = _uptCnt1;
         element1.neighborID = _vid2;
-        element1.dtIndex = _dtIndex;
+        element1.dtInstance = this;
         element2.cnt = _uptCnt2;
         element2.neighborID = _vid1;
-        element2.dtIndex = _dtIndex;
+        element2.dtInstance = this;
     }
 
     inline void reset_status(const double &_rho,
