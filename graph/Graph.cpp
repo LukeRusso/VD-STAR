@@ -401,7 +401,7 @@ vector<vector<int>> Graph::query(double eps, int mu) {
     
     for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
         dynscan::Vertex *v = (dynscan::Vertex *) vList[i];
-        if(v->getDegree() <= mu){
+        if(v->getDegree() < mu){
             continue;
         }
         int temp_m_C = v->query(eps, mu);
