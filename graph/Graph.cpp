@@ -9,7 +9,7 @@ Graph::Graph(MyVector<dynscan::Vertex *> &_vList, double _rho) {
     int vertex_number = (int) vList.size();
     computePermutationNumber(omega * _rho);
 //    myJaccard = new Jaccard((long double) 1.0 / FAILURE_PROB, omega * rho);
-     myJaccard = new Jaccard((long double) 1.0 / (1 / vertex_number), omega * rho);
+     myJaccard = new Jaccard((long double)vertex_number, omega * rho);
 }
 
 int Graph::insertEdge(int _vID1, int _vID2) {
