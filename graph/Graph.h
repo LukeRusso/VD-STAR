@@ -45,7 +45,7 @@ public:
     int removeEdge(int _vID1, int _vID2);
 
 
-    double query(double eps, int mu);
+    void query(double eps, int mu);
 
 protected:
     /**

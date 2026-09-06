@@ -164,11 +164,12 @@ int main(int argc, char **argv) {
             next_output_position += (int) (0.1 * m / 2);
         }
         if (i == next_query_position - 1) {
-            double q_time = 0;
             double esp = generateRandomInt(100, 1000) / 1000.0;
             int mu = generateRandomInt(1, int(2 * m / n));
-            q_time = graph.query(esp, mu);
-            total_query += q_time;
+            start = getCurrentTime();
+            graph.query(esp, mu);
+            end = getCurrentTime();
+            total_query += end - start;
             query_times++;
             next_query_position += next_query_position;
         }

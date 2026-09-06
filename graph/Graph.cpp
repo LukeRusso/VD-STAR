@@ -394,11 +394,9 @@ int Graph::makeLarge(dynscan::Vertex *v) {
     return 0;
 }
 
-double Graph::query(double eps, int mu) {
+void Graph::query(double eps, int mu) {
     int core_num = 0;
     int m_C = 0;
-    double q_time = 0;
-    double q_start, q_end;
     MyVector<dynscan::Vertex *> cores;
     bool* isCore = new bool[vList.size() + 1]();
 
@@ -407,10 +405,7 @@ double Graph::query(double eps, int mu) {
         if(v->getDegree() <= mu){
             continue;
         }
-        q_start = getCurrentTime();
         int temp_m_C = v->query(eps, mu);
-        q_end = getCurrentTime();
-        q_time += q_end - q_start;
         if(temp_m_C < mu){
             continue;
         }
@@ -452,16 +447,10 @@ double Graph::query(double eps, int mu) {
                 }
             }
         }
-        //print out the cluster
-//        for (int j = 0, cluster_size = C.size(); j < cluster_size; j++) {
-//            printf("%d,", C[j]);
-//        }
-//        printf("\n");
     }
 //    return C;
 
     cores.release_space();
     delete[] visited;
     delete[] isCore;
-    return q_time;
 }
