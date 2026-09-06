@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <queue>
+#include <utility>
 #include "Graph.h"
 #include "../MyLib/MyTimer.h"
 
@@ -394,24 +395,17 @@ int Graph::makeLarge(dynscan::Vertex *v) {
     return 0;
 }
 
-void Graph::query(double eps, int mu) {
-    int core_num = 0;
-    int m_C = 0;
+vector<vector<int>> Graph::query(double eps, int mu) {
     MyVector<dynscan::Vertex *> cores;
     bool* isCore = new bool[vList.size() + 1]();
-
+    
     for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
         dynscan::Vertex *v = (dynscan::Vertex *) vList[i];
         if(v->getDegree() <= mu){
             continue;
         }
         int temp_m_C = v->query(eps, mu);
-        if(temp_m_C < mu){
-            continue;
-        }
-        else{
-            core_num += 1;
-            m_C += temp_m_C;
+        if(temp_m_C >= mu){
             cores.push_back(v);
             isCore[v->id] = true;
         }
@@ -422,6 +416,8 @@ void Graph::query(double eps, int mu) {
     for (int i = 0; i <= vertex_number; ++i) {
         visited[i] = 0;
     }
+    vector<vector<int>> clusters;
+    clusters.reserve(cores.size());
     queue<dynscan::Vertex *> Q;
     for (int i = 0, core_number = cores.size(); i < core_number; i++) {
         dynscan::Vertex *v = cores[i];
@@ -430,7 +426,8 @@ void Graph::query(double eps, int mu) {
         }
         Q.push(v);
         visited[v->id] = 1;
-        MyVector<int> C;
+        vector<int> C;
+        C.push_back(v->id);
         while(!Q.empty()){
             dynscan::Vertex *u = Q.front();
             Q.pop();
@@ -447,10 +444,11 @@ void Graph::query(double eps, int mu) {
                 }
             }
         }
+        clusters.push_back(move(C));
     }
-//    return C;
 
     cores.release_space();
     delete[] visited;
     delete[] isCore;
+    return clusters;
 }

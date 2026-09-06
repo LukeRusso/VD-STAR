@@ -6,6 +6,7 @@
 #include "../MyLib/MyVector.h"
 #include <cmath>
 #include <random>
+#include <vector>
 #include "../dt/DTManager.h"
 
 using namespace std;
@@ -45,7 +46,7 @@ public:
     int removeEdge(int _vID1, int _vID2);
 
 
-    void query(double eps, int mu);
+    vector<vector<int>> query(double eps, int mu);
 
 protected:
     /**
