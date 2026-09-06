@@ -1,3 +1,11 @@
 /.idea/
 /cmake-build-debug/
 /CMakeFiles/
+
+# Python packaging artifacts
+/dist/
+/build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+

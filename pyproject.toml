@@ -1,0 +1,15 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "vdstar"
+version = "0.1.0"
+description = "VD-STAR dynamic structural clustering"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+wheel.packages = ["src/vdstar"]
+cmake.version = ">=3.25"
