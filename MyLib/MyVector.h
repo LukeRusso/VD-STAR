@@ -4,11 +4,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <cstring>
+#include <stdexcept>
+#include <string>
 
 /*
  *  The index value type for large size.
  */
 typedef unsigned long long LargeSizeType;
+
+/*
+ *  Thrown when a MyVector buffer cannot be reallocated
+ */
+class MyVectorBadAlloc : public std::bad_alloc {
+private:
+    std::string _message;
+public:
+    MyVectorBadAlloc(const std::string &_op, unsigned long long _requested) {
+        _message = "MyVector::" + _op + ": reallocation of " +
+                   std::to_string(_requested) + " elements failed";
+    }
+
+    const char *what() const noexcept override {
+        return _message.c_str();
+    }
+};
 
 template<class T, class SizeType = unsigned int>
 class MyVector {
@@ -90,10 +109,10 @@ public:
         if (i < this->elementNum)
             return this->elementList[i];
         else {
-            printf("Error in MyVector accessing array element: Out of boundary! Accessing [%lld] while size = %lld and length = %lld!\n",
-                   (unsigned long long) i,
-                   (unsigned long long) elementNum, (unsigned long long) length);
-            exit(1);
+            throw std::out_of_range(
+                    "MyVector: index " + std::to_string((unsigned long long) i) +
+                    " out of range (size = " + std::to_string((unsigned long long) elementNum) +
+                    ", capacity = " + std::to_string((unsigned long long) length) + ")");
         }
     }
 
@@ -187,8 +206,7 @@ void MyVector<T, SizeType>::pop_back() {
             this->shrink_to_half();
         //
     } else {
-        printf("Error in MyVector<T>::pop_back: Out of boundary!\n");
-        exit(0);
+        throw std::out_of_range("MyVector::pop_back: called on an empty vector");
     }
 }
 
@@ -200,8 +218,7 @@ void MyVector<T, SizeType>::reserve(SizeType len) {
 
         this->elementList = (T *) realloc(temp, sizeof(T) * len);
         if (this->elementList == NULL) {
-            printf("Error in reserve: The reallocation is failed!\n");
-            exit(0);
+            throw MyVectorBadAlloc("reserve", (unsigned long long) len);
         }
         this->length = len;
 
@@ -266,9 +283,7 @@ void MyVector<T, SizeType>::shrink_to_fit() {
         this->elementList = (T *) realloc(temp, sizeof(T) * this->elementNum);
 
         if (this->elementList == NULL) {
-            // realloc is failed.
-            printf("Error in shrink_to_fit: the reallocation is failed!\n");
-            exit(0);
+            throw MyVectorBadAlloc("shrink_to_fit", (unsigned long long) this->elementNum);
         }
 
         this->length = this->elementNum;
@@ -288,9 +303,7 @@ void MyVector<T, SizeType>::shrink_to_half() {
         T *temp = this->elementList;
         this->elementList = (T *) realloc(temp, sizeof(T) * halfLength);
         if (this->elementList == NULL) {
-            // realloc is failed.
-            printf("Error in shrink_to_fit: the reallocation is failed!\n");
-            exit(0);
+            throw MyVectorBadAlloc("shrink_to_half", (unsigned long long) halfLength);
         }
         this->length = halfLength;
     }
