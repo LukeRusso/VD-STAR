@@ -125,10 +125,6 @@ public:
 
     int getCnt(int i) const;
 
-    ~DTBucket();
-
-    void ReleaseSpace();
-
     void updateCnt(int i, int updateCnt) const;
 };
 

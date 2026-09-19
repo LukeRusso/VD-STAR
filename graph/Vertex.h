@@ -2,6 +2,7 @@
 #define DYNSCAN_VERTEX_H
 
 #include <map>
+#include <memory>
 #include "../MyLib/MyVector.h"
 #include "../dt/DTBucket.h"
 #include "../dt/DTInstance.h"
@@ -31,13 +32,13 @@ namespace dynscan {
 
         hash_map<int, DTBucketElement*> neighborID_DTBucketElement_Map;
 
-        // A pointer of the bucket list for managing all the related DT instances.
-        DTBucket* dtBucketPtr;
+        // The bucket list for managing all the related DT instances.
+        DTBucket dtBucketPtr;
 
 
 
     public:
-        multimap<float, int>* NOPtr;
+        multimap<float, int> NOPtr;
         /**
          * Return neighbor ID at given _index
          * @param _index
@@ -58,6 +59,9 @@ namespace dynscan {
 
 
         Vertex(const int &_id);
+
+        Vertex(const Vertex &) = delete;
+        Vertex &operator=(const Vertex &) = delete;
 
 //        Vertex(const int &_id, MyVector<int> &_adjacentList);
 //
@@ -138,7 +142,7 @@ namespace dynscan {
          * @param the ID of vertex to delete from
          */
         inline void DeleteElement(int bucketIndex, int elementIndex) {
-            dtBucketPtr->DeleteElement(bucketIndex, elementIndex);
+            dtBucketPtr.DeleteElement(bucketIndex, elementIndex);
         }
 
 
@@ -156,32 +160,32 @@ namespace dynscan {
         */
 
         inline int addDTBucketElement(int i, DTBucketElement* e, int updateCnt) {
-            return dtBucketPtr->InsertNewELement(i, e, updateCnt);
+            return dtBucketPtr.InsertNewELement(i, e, updateCnt);
         }
 
         inline bool CheckEmptyByIndex(int index) {
-            return dtBucketPtr->CheckEmptyByIndex(index);
+            return dtBucketPtr.CheckEmptyByIndex(index);
         }
 
         inline int listSize() {
-            return dtBucketPtr->listSize();
+            return dtBucketPtr.listSize();
         }
 
         inline int sizeByIndex(int i) {
-            return dtBucketPtr->sizeByIndex(i);
+            return dtBucketPtr.sizeByIndex(i);
         }
 
         inline void updateBucketCount(int i, int updateCount) {
-            dtBucketPtr->updateCnt(i, updateCount);
+            dtBucketPtr.updateCnt(i, updateCount);
         }
 
         inline int getBucketCount(int i) {
-            return dtBucketPtr->getCnt(i);
+            return dtBucketPtr.getCnt(i);
         }
 
 
         inline DTBucketElement* getDTBucketElement(int i, int j) {
-            return dtBucketPtr->getElement(i, j);
+            return dtBucketPtr.getElement(i, j);
         }
 
         inline static int allocate_intersection_cnt_index() {

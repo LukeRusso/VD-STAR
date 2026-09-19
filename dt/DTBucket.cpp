@@ -17,14 +17,6 @@ void DTBucket::DeleteElement(int bucketIndex, int elementIndex) {
     }
 }
 
-DTBucket::~DTBucket() {
-    for (int i = 0; i < buckList.size(); ++i) {
-        buckList[i].release_space();
-    }
-    buckList.release_space();
-
-}
-
 int DTBucket::listSize() {
     return buckList.size();
 }
@@ -70,13 +62,6 @@ void DTBucket::shrinkToFit() {
         cnt.pop_back();
         i--;
     }
-}
-
-void DTBucket::ReleaseSpace() {
-    for (int i = 0; i < buckList.size(); ++i) {
-        buckList[i].release_space();
-    }
-    buckList.release_space();
 }
 
 DTBucketElement* DTBucket::getElement(int i, int j) const {

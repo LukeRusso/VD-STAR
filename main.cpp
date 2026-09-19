@@ -177,4 +177,6 @@ int main(int argc, char **argv) {
     printf("---------------------------------------------------------------------\n");
     printf("Average query time: *%.9lf*\t",
            total_query / query_times);
+
+    free(edges);
 }

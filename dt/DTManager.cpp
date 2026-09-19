@@ -12,4 +12,11 @@ void DTManager::removeInstance(DTInstance* instance) {
         temp->set_dtIndex(_indexToDel);
         dtInstanceList.pop_back();
     }
+    delete instance;
+}
+
+DTManager::~DTManager() {
+    for (int i = 0; i < dtInstanceList.size(); ++i) {
+        delete dtInstanceList[i];
+    }
 }

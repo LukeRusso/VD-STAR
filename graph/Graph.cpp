@@ -8,8 +8,13 @@ Graph::Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho)
         : rho(_rho), vList(std::move(_vList)) {
     int vertex_number = (int) vList.size();
     computePermutationNumber(omega * _rho);
-//    myJaccard = new Jaccard((long double) 1.0 / FAILURE_PROB, omega * rho);
-     myJaccard = new Jaccard((long double)vertex_number, omega * rho);
+    myJaccard = std::make_unique<Jaccard>((long double) vertex_number, omega * rho);
+}
+
+Graph::~Graph() {
+    for (int i = 0; i < vList.size(); ++i) {
+        delete vList[i];
+    }
 }
 
 int Graph::insertEdge(int _vID1, int _vID2) {
@@ -430,7 +435,7 @@ vector<vector<int>> Graph::query(double eps, int mu) {
         while(!Q.empty()){
             dynscan::Vertex *u = Q.front();
             Q.pop();
-            for (auto rit = u->NOPtr->rbegin(); rit != u->NOPtr->rend(); ++rit) {
+            for (auto rit = u->NOPtr.rbegin(); rit != u->NOPtr.rend(); ++rit) {
                 if(rit->first >= eps){
                     int w = rit->second;
                     if(visited[w]) continue;
@@ -446,7 +451,6 @@ vector<vector<int>> Graph::query(double eps, int mu) {
         clusters.push_back(move(C));
     }
 
-    cores.release_space();
     delete[] visited;
     delete[] isCore;
     return clusters;

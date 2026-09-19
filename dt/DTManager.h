@@ -15,6 +15,8 @@ protected:
     MyVector<DTInstance *> dtInstanceList;
 
 public:
+    ~DTManager();
+
     /**
      * Insert a DT instance at the end of the list.
      * @param _instance

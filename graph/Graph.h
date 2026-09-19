@@ -5,6 +5,7 @@
 #include "Jaccard.h"
 #include "../MyLib/MyVector.h"
 #include <cmath>
+#include <memory>
 #include <random>
 #include <vector>
 #include "../dt/DTManager.h"
@@ -25,7 +26,7 @@ protected:
 
     int permutationNum;
 
-    Jaccard *myJaccard;
+    std::unique_ptr<Jaccard> myJaccard;
 
     // The list of all the vertices.
     MyVector<dynscan::Vertex *> vList;
@@ -35,6 +36,9 @@ public:
      *  The constructor of Graph.
      */
     Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho);
+
+    ~Graph();
+
     /*
  *  Insert an edge to the graph.
  */

@@ -13,16 +13,14 @@ Vertex::Vertex(const int &_id) {
     id = _id;
     updateCnt = 0;
     is_large = false;
-    dtBucketPtr = new DTBucket;
     adjacentList.reserve(adj_hash_initialization_size);
     neighborIDAdjacentIndexMap.reserve(adj_hash_initialization_size);
-    NOPtr = new multimap<float, int>;
 }
 
 void Vertex::insertNeighbor(const int &_neighborID, const int &_intersectionCntManagerIndex, float simScore) {
     adjacentList.push_back(_neighborID);
     neighbor_node_sc.push_back(simScore);
-    NOPtr->insert(make_pair(simScore, _neighborID));
+    NOPtr.insert(make_pair(simScore, _neighborID));
     neighborIDAdjacentIndexMap[_neighborID] = adjacentList.size() - 1;
     if (!is_large) {
         intersectionCntIndex.push_back(_intersectionCntManagerIndex);
@@ -32,15 +30,15 @@ void Vertex::insertNeighbor(const int &_neighborID, const int &_intersectionCntM
 void Vertex::updateNeighborSimScore(float sco, const int _neighborID) {
     int _index = neighborIDAdjacentIndexMap.at(_neighborID);
     float pre_sco = neighbor_node_sc[_index];
-    auto range = NOPtr->equal_range(pre_sco);
+    auto range = NOPtr.equal_range(pre_sco);
     for (auto it = range.first; it != range.second; ++it) {
         if (it->second == _neighborID) {
-            NOPtr->erase(it);
+            NOPtr.erase(it);
             break;
         }
     }
     neighbor_node_sc[_index] = sco;
-    NOPtr->insert(make_pair(sco, _neighborID));
+    NOPtr.insert(make_pair(sco, _neighborID));
 }
 
 void Vertex::deleteNeighbor(const int _neighborID) {
@@ -55,10 +53,10 @@ void Vertex::deleteNeighbor(const int _neighborID) {
         }
     } else {
         float pre_sco = neighbor_node_sc[_index];
-        auto range = NOPtr->equal_range(pre_sco);
+        auto range = NOPtr.equal_range(pre_sco);
         for (auto it = range.first; it != range.second; ++it) {
             if (it->second == _neighborID) {
-                NOPtr->erase(it);
+                NOPtr.erase(it);
                 break;
             }
         }
@@ -77,7 +75,7 @@ void Vertex::deleteNeighbor(const int _neighborID) {
 
 int Vertex::query(double esp, int mu) {
     int count = 0;
-    for (auto rit = NOPtr->rbegin(); rit != NOPtr->rend(); ++rit) {
+    for (auto rit = NOPtr.rbegin(); rit != NOPtr.rend(); ++rit) {
         if(rit->first >= esp){
 //            rit->second;
             count++;
