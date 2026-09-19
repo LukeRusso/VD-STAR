@@ -1,7 +1,5 @@
 #include "DTBucket.h"
 
-MyVector<DTBucketElement*> DTBucket::EmptyBucket;
-
 void DTBucket::DeleteElement(int bucketIndex, int elementIndex) {
     MyVector<DTBucketElement*>& bList = buckList[bucketIndex];
     if (bList.size() == 1) {
@@ -33,7 +31,7 @@ int DTBucket::listSize() {
 
 void DTBucket::extendListSize(int index) {
     while (buckList.size() < index) {
-        buckList.push_back(EmptyBucket);
+        buckList.push_back(MyVector<DTBucketElement *>());
         cnt.push_back(0);
     }
 }

@@ -159,10 +159,6 @@ namespace dynscan {
             return dtBucketPtr->InsertNewELement(i, e, updateCnt);
         }
 
-        inline MyVector<MyVector<DTBucketElement*>> getDTBucket() {
-            return dtBucketPtr->buckList;
-        }
-
         inline bool CheckEmptyByIndex(int index) {
             return dtBucketPtr->CheckEmptyByIndex(index);
         }

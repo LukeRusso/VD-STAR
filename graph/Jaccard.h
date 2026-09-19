@@ -26,7 +26,7 @@ private:
     static long long batch_num;
     static const int batch_size = 500000;
 
-    inline bool is_a_common_vertex(const dynscan::Vertex _v, const dynscan::Vertex _u) {
+    inline bool is_a_common_vertex(const dynscan::Vertex &_v, const dynscan::Vertex &_u) {
         if (index <= size_v) {
             const int v_neighbor = index < size_v ? _v.getNeighborID(index) : _v.id;
             if (_u.has_neighbor(v_neighbor)) {

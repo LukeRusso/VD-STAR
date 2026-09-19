@@ -34,7 +34,7 @@ public:
     /*
      *  The constructor of Graph.
      */
-    Graph(MyVector<dynscan::Vertex *> &_vList, double _rho);
+    Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho);
     /*
  *  Insert an edge to the graph.
  */

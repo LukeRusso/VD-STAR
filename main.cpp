@@ -118,11 +118,10 @@ int main(int argc, char **argv) {
         dynscan::Vertex *newVertex = new dynscan::Vertex(i + 1);
         _vList.push_back(newVertex);
     }
-    Graph graph(_vList, para.rho);
+    Graph graph(std::move(_vList), para.rho);
     printf("Graph generation finished with %d vertices and %d edges.\n", n,
            m / 2);
 
-    _vList.release_space();
     double start = getCurrentTime();
     double end = 0;
     double output_gap = 0.1;

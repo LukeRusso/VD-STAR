@@ -18,8 +18,7 @@ std::vector<std::vector<int>> cluster(
         dynscan::Vertex *newVertex = new dynscan::Vertex(i + 1);
         _vList.push_back(newVertex);
     }
-    Graph graph(_vList, rho);
-    _vList.release_space();
+    Graph graph(std::move(_vList), rho);
 
     for (int i = 0; i < edges.size(); i++) {
         graph.insertEdge(edges[i].first, edges[i].second);

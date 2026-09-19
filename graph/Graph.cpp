@@ -4,9 +4,8 @@
 #include "Graph.h"
 #include "../MyLib/MyTimer.h"
 
-Graph::Graph(MyVector<dynscan::Vertex *> &_vList, double _rho) {
-    vList.swap(_vList);
-    rho = _rho;
+Graph::Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho)
+        : rho(_rho), vList(std::move(_vList)) {
     int vertex_number = (int) vList.size();
     computePermutationNumber(omega * _rho);
 //    myJaccard = new Jaccard((long double) 1.0 / FAILURE_PROB, omega * rho);

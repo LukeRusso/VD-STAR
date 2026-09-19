@@ -6,6 +6,8 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 /*
  *  The index value type for large size.
@@ -19,8 +21,8 @@ class MyVectorBadAlloc : public std::bad_alloc {
 private:
     std::string _message;
 public:
-    MyVectorBadAlloc(const std::string &_op, unsigned long long _requested) {
-        _message = "MyVector::" + _op + ": reallocation of " +
+    MyVectorBadAlloc(unsigned long long _requested) {
+        _message = "MyVector: reallocation of " +
                    std::to_string(_requested) + " elements failed";
     }
 
@@ -34,12 +36,22 @@ class MyVector {
 public:
     MyVector();
 
-    ~MyVector();
+    ~MyVector() noexcept;
+
+    MyVector(const MyVector &) = delete;
+
+    MyVector &operator=(const MyVector &) = delete;
+
+    MyVector(MyVector &&other) noexcept;
+
+    MyVector &operator=(MyVector &&other) noexcept;
 
     /*
      *  Add the given element to the back.
      */
     void push_back(T const &_val);
+
+    void push_back(T &&_val);
 
     /*
      *  Remove the last element from the array.
@@ -52,17 +64,6 @@ public:
     void reserve(SizeType len);
 
     /*
-     *	Resize the array to specified length.
-     *	All the new elements are initialized by the given value.
-     */
-    void resize(SizeType targetSize, const T &_val);
-
-    /*
-     *	Resize the array to specified length.
-     */
-    void resize(SizeType targetSize);
-
-    /*
      *  Shrink the array to fit the occupied size.
      */
     void shrink_to_fit();
@@ -71,11 +72,6 @@ public:
      *  Shrink the length of the array by half.
      */
     void shrink_to_half();
-
-    /*
-     *  Swap the content with given vector.
-     */
-    void swap(MyVector<T, SizeType> &_list);
 
     /*
      *  Clear elements in the array but do not modify its capacity.
@@ -137,6 +133,11 @@ protected:
      *  Enlarge the length of the array by a factor of 2.
      */
     void enlarge();
+
+    /*
+     *  Change capacity to new_length.
+     */
+    void reallocate_to(SizeType new_length);
 };
 
 template<class T, class SizeType>
@@ -148,17 +149,8 @@ MyVector<T, SizeType>::MyVector() {
 }
 
 template<class T, class SizeType>
-MyVector<T, SizeType>::~MyVector() {
-    // TODO Auto-generated destructor stub
-//	this->release_space();
-    // Important Note:
-    // In this destructor, we do not release the elementList.
-    // Please explicitly call the release_space function after you use.
-
-//	if (this->elementList != NULL) {
-//		delete[] (this->elementList);
-//		this->elementList = NULL;
-//	}
+MyVector<T, SizeType>::~MyVector() noexcept {
+    release_space();
 }
 
 template<class T, class SizeType>
@@ -178,33 +170,31 @@ SizeType MyVector<T, SizeType>::capacity() const {
 
 template<class T, class SizeType>
 void MyVector<T, SizeType>::push_back(T const &_val) {
-    if (this->elementNum < this->length) {
-        this->elementList[elementNum] = _val;
-        elementNum++;
-    } else {
-        // Need to enlarge the length of the array.
+    if (this->elementNum >= this->length) {
         this->enlarge();
-        this->elementList[elementNum] = _val;
-        elementNum++;
-//
-//		printf("Copy occured: size = %d\ length = %d\n", this->elementNum,
-//				this->length);
-//		for (int i = 0; i < this->elementNum; ++i) {
-//			printf("%d ", this->elementList[i]);
-//		}
-//		printf("\n\n");
     }
+    new (&this->elementList[elementNum]) T(_val);
+    elementNum++;
+}
+
+template<class T, class SizeType>
+void MyVector<T, SizeType>::push_back(T &&_val) {
+    if (this->elementNum >= this->length) {
+        this->enlarge();
+    }
+    new (&this->elementList[elementNum]) T(std::move(_val));
+    elementNum++;
 }
 
 template<class T, class SizeType>
 void MyVector<T, SizeType>::pop_back() {
     if (this->elementNum > 0) {
         this->elementNum--;
+        this->elementList[elementNum].~T();
         // Added by jhgan at 4:32pm on Sept 5, 2016.
         // Shrink the length of the array when necessary.
         if (this->elementNum * 4 <= this->length)
             this->shrink_to_half();
-        //
     } else {
         throw std::out_of_range("MyVector::pop_back: called on an empty vector");
     }
@@ -213,60 +203,7 @@ void MyVector<T, SizeType>::pop_back() {
 template<class T, class SizeType>
 void MyVector<T, SizeType>::reserve(SizeType len) {
     if (len > this->length) {
-        T *temp = this->elementList;
-//		this->elementList = new T[len];
-
-        this->elementList = (T *) realloc(temp, sizeof(T) * len);
-        if (this->elementList == NULL) {
-            throw MyVectorBadAlloc("reserve", (unsigned long long) len);
-        }
-        this->length = len;
-
-//		this->elementList = (T*) malloc(sizeof(T) * len);
-//
-//		this->length = len;
-//		if (temp != NULL) {
-//			memcpy(this->elementList, temp, this->elementNum * sizeof(T));
-////			delete[] temp;
-//			free(temp);
-//			temp = NULL;
-//		}
-    }
-}
-
-template<class T, class SizeType>
-void MyVector<T, SizeType>::resize(SizeType targetSize, const T &_val) {
-    if (this->elementNum >= targetSize) {
-        // Shrink to targetSize.
-        this->elementNum = targetSize;
-    } else {
-        if (this->length < targetSize) {
-            // Need to enlarge the length of the array.
-            this->reserve(targetSize);
-        }
-        SizeType temp = this->elementNum;
-        for (SizeType i = temp; i < targetSize; ++i) {
-            this->elementList[i] = _val;
-            elementNum++;
-        }
-    }
-}
-
-template<class T, class SizeType>
-void MyVector<T, SizeType>::resize(SizeType targetSize) {
-    if (this->elementNum >= targetSize) {
-        // Shrink to targetSize.
-        this->elementNum = targetSize;
-    } else {
-        if (this->length < targetSize) {
-            // Need to enlarge the length of the array.
-            this->reserve(targetSize);
-        }
-        this->elementNum = targetSize;
-//		int temp = this->elementNum;
-//		for (int i = temp; i < targetSize; ++i) {
-//			elementNum++;
-//		}
+        this->reallocate_to(len);
     }
 }
 
@@ -278,18 +215,7 @@ void MyVector<T, SizeType>::shrink_to_fit() {
     }
 
     if (this->elementNum < this->length) {
-        T *temp = this->elementList;
-//		this->elementList = new T[this->elementNum];
-        this->elementList = (T *) realloc(temp, sizeof(T) * this->elementNum);
-
-        if (this->elementList == NULL) {
-            throw MyVectorBadAlloc("shrink_to_fit", (unsigned long long) this->elementNum);
-        }
-
-        this->length = this->elementNum;
-//		memcpy(this->elementList, temp, this->elementNum * sizeof(T));
-//		delete[] temp;
-//		free(temp);
+        this->reallocate_to(this->elementNum);
     }
 }
 
@@ -300,238 +226,95 @@ void MyVector<T, SizeType>::shrink_to_half() {
     }
     SizeType halfLength = this->length / 2;
     if (this->elementNum < halfLength) {
-        T *temp = this->elementList;
-        this->elementList = (T *) realloc(temp, sizeof(T) * halfLength);
-        if (this->elementList == NULL) {
-            throw MyVectorBadAlloc("shrink_to_half", (unsigned long long) halfLength);
-        }
-        this->length = halfLength;
+        this->reallocate_to(halfLength);
     }
 }
 
 template<class T, class SizeType>
-void MyVector<T, SizeType>::swap(MyVector<T, SizeType> &_list) {
-    SizeType temp = this->elementNum;
-    this->elementNum = _list.elementNum;
-    _list.elementNum = temp;
+MyVector<T, SizeType>::MyVector(MyVector &&other) noexcept
+        : length(other.length),
+          elementNum(other.elementNum),
+          elementList(other.elementList) {
+    other.elementList = NULL;
+    other.elementNum = 0;
+    other.length = 0;
+}
 
-    temp = this->length;
-    this->length = _list.length;
-    _list.length = temp;
-
-    T *ptr = this->elementList;
-    this->elementList = _list.elementList;
-    _list.elementList = ptr;
+template<class T, class SizeType>
+MyVector<T, SizeType> &MyVector<T, SizeType>::operator=(MyVector &&other) noexcept {
+    if (this != &other) {
+        release_space();
+        elementList = other.elementList;
+        elementNum = other.elementNum;
+        length = other.length;
+        other.elementList = NULL;
+        other.elementNum = 0;
+        other.length = 0;
+    }
+    return *this;
 }
 
 template<class T, class SizeType>
 void MyVector<T, SizeType>::clear() {
-    this->elementNum = 0;
+    while (this->elementNum > 0) {
+        this->elementNum--;
+        this->elementList[elementNum].~T();
+    }
 }
 
 template<class T, class SizeType>
 void MyVector<T, SizeType>::release_space() {
-    this->elementNum = 0;
+    while (this->elementNum > 0) {
+        this->elementNum--;
+        this->elementList[elementNum].~T();
+    }
     this->length = 0;
     if (this->elementList != NULL) {
-//		delete[] (this->elementList);
         free(this->elementList);
         this->elementList = NULL;
     }
 }
 
 template<class T, class SizeType>
+void MyVector<T, SizeType>::reallocate_to(SizeType new_length) {
+    T *old_list = this->elementList;
+
+    if constexpr (std::is_trivially_copyable<T>::value) {
+        T *new_list = (T *) realloc(old_list, sizeof(T) * new_length);
+        if (new_list == NULL) {
+            throw MyVectorBadAlloc((unsigned long long) new_length);
+        }
+
+        this->elementList = new_list;
+        this->length = new_length;
+    } else {
+        SizeType old_num = this->elementNum;
+
+        T *new_list = (T *) malloc(sizeof(T) * new_length);
+        if (new_list == NULL) {
+            throw MyVectorBadAlloc((unsigned long long) new_length);
+        }
+
+        for (SizeType i = 0; i < old_num; ++i) {
+            new (&new_list[i]) T(std::move(old_list[i]));
+            old_list[i].~T();
+        }
+        if (old_list != NULL) {
+            free(old_list);
+        }
+
+        this->elementList = new_list;
+        this->length = new_length;
+    }
+}
+
+template<class T, class SizeType>
 void MyVector<T, SizeType>::enlarge() {
     if (this->length == 0) {
-//		this->elementList = new T[2];
-        this->elementList = (T *) malloc(sizeof(T) * 2);
-        this->length = 2;
+        this->reallocate_to(2);
     } else {
         this->reserve(this->length * 2);
     }
 }
 
-/**********************************************************************
- *  back up 2015-10-22
- *  before modify to use malloc and realloc.
- *
- **********************************************************************/
-
-//template<class T>
-//MyVector<T>::MyVector() {
-//	// TODO Auto-generated constructor stub
-//	this->elementList = NULL;
-//	this->elementNum = 0;
-//	this->length = 0;
-//}
-//
-//template<class T>
-//MyVector<T>::~MyVector() {
-//	// TODO Auto-generated destructor stub
-//
-//	// Important Note:
-//	// In this destructor, we do not release the elementList.
-//	// Please explicitly call the release_space function after you use.
-//
-////	if (this->elementList != NULL) {
-////		delete[] (this->elementList);
-////		this->elementList = NULL;
-////	}
-//}
-//
-//template<class T>
-//T* MyVector<T>::get_list() const {
-//	return this->elementList;
-//}
-//
-//template<class T>
-//unsigned int MyVector<T>::size() const {
-//	return this->elementNum;
-//}
-//
-//template<class T>
-//unsigned int MyVector<T>::capacity() const {
-//	return this->length;
-//}
-//
-//template<class T>
-//void MyVector<T>::push_back(T const& _val) {
-//	if (this->elementNum < this->length) {
-//		this->elementList[elementNum] = _val;
-//		elementNum++;
-//	} else {
-//		// Need to enlarge the length of the array.
-//		this->enlarge();
-//		this->elementList[elementNum] = _val;
-//		elementNum++;
-////
-////		printf("Copy occured: size = %d\ length = %d\n", this->elementNum,
-////				this->length);
-////		for (int i = 0; i < this->elementNum; ++i) {
-////			printf("%d ", this->elementList[i]);
-////		}
-////		printf("\n\n");
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::pop_back() {
-//	if (this->elementNum > 0) {
-//		elementNum--;
-//	} else {
-//		printf("Error in MyVector<T>::pop_back: Out of boundary!\n");
-//		exit(0);
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::reserve(unsigned int len) {
-//	if (len > this->length) {
-//		T* temp = this->elementList;
-//		this->elementList = new T[len];
-////		this->elementList = (T*) malloc(sizeof(T) * len);
-//
-//		this->length = len;
-//		if (temp != NULL) {
-//			memcpy(this->elementList, temp, this->elementNum * sizeof(T));
-//			delete[] temp;
-////			free(temp);
-//			temp = NULL;
-//		}
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::resize(unsigned int targetSize, const T& _val) {
-//	if (this->elementNum >= targetSize) {
-//		// Shrink to targetSize.
-//		this->elementNum = targetSize;
-//	} else {
-//		if (this->length < targetSize) {
-//			// Need to enlarge the length of the array.
-//			this->reserve(targetSize);
-//		}
-//		unsigned int temp = this->elementNum;
-//		for (unsigned int i = temp; i < targetSize; ++i) {
-//			this->elementList[i] = _val;
-//			elementNum++;
-//		}
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::resize(unsigned int targetSize) {
-//	if (this->elementNum >= targetSize) {
-//		// Shrink to targetSize.
-//		this->elementNum = targetSize;
-//	} else {
-//		if (this->length < targetSize) {
-//			// Need to enlarge the length of the array.
-//			this->reserve(targetSize);
-//		}
-//		this->elementNum = targetSize;
-////		int temp = this->elementNum;
-////		for (int i = temp; i < targetSize; ++i) {
-////			elementNum++;
-////		}
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::shrink_to_fit() {
-//	if (this->elementNum < this->length) {
-//		T* temp = this->elementList;
-//		this->elementList = new T[this->elementNum];
-////		this->elementList = (T*) malloc(sizeof(T) * this->elementNum);
-//
-//		memcpy(this->elementList, temp, this->elementNum * sizeof(T));
-//		this->length = this->elementNum;
-//		delete[] temp;
-////		free(temp);
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::swap(MyVector<T>& _list) {
-//	unsigned int temp = this->elementNum;
-//	this->elementNum = _list.elementNum;
-//	_list.elementNum = temp;
-//
-//	temp = this->length;
-//	this->length = _list.length;
-//	_list.length = temp;
-//
-//	T* ptr = this->elementList;
-//	this->elementList = _list.elementList;
-//	_list.elementList = ptr;
-//}
-//
-//template<class T>
-//void MyVector<T>::clear() {
-//	this->elementNum = 0;
-//}
-//
-//template<class T>
-//void MyVector<T>::release_space() {
-//	this->elementNum = 0;
-//	this->length = 0;
-//	if (this->elementList != NULL) {
-//		delete[] (this->elementList);
-////		free(this->elementList);
-//		this->elementList = NULL;
-//	}
-//}
-//
-//template<class T>
-//void MyVector<T>::enlarge() {
-//	if (this->length == 0) {
-////		printf("enlarge from %d to %d.\n", this->length, 2);
-//		this->elementList = new T[2];
-////		this->elementList = (T*) malloc(sizeof(T) * 2);
-//		this->length = 2;
-//	} else {
-////		printf("enlarge from %d to %d.\n", this->length, this->length * 2);
-//		this->reserve(this->length * 2);
-//	}
-//}
 #endif /* MYVECTOR_H_ */

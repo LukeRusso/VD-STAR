@@ -106,8 +106,6 @@ public:
 
     }
 
-    static MyVector<DTBucketElement *> EmptyBucket;
-
     int listSize();
 
     int sizeByIndex(int i);
