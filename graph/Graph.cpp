@@ -121,12 +121,8 @@ int Graph::insertBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {
     // +4 here as degree increased for both vertex
     double jSimilarity =
             commonCnt / (double) (degree1 + degree2 + 4 - commonCnt);
-    int intersection_cnt_new_index =
-            dynscan::Vertex::allocate_intersection_cnt_index();
-    v1->insertNeighbor(vID2, intersection_cnt_new_index, jSimilarity);
-    v2->insertNeighbor(vID1, intersection_cnt_new_index, jSimilarity);
-    v1->setIntersectionCnt(commonCnt, intersection_cnt_new_index);
-    v2->setIntersectionCnt(commonCnt, intersection_cnt_new_index);
+    v1->insertNeighbor(vID2, jSimilarity, commonCnt);
+    v2->insertNeighbor(vID1, jSimilarity, commonCnt);
     checkVertexDTBucket(v1);
     checkVertexDTBucket(v2);
 
@@ -180,10 +176,8 @@ int Graph::insertBetweenSmallAndLarge(dynscan::Vertex *v1,
     }
     double jSimilarity =
             commonCnt / (double) (degree1 + degree2 + 4 - commonCnt);
-    int intersection_cnt_new_index =
-            dynscan::Vertex::allocate_intersection_cnt_index();
-    v1->insertNeighbor(vID2, intersection_cnt_new_index, jSimilarity);
-    v2->insertNeighbor(vID1, -1, jSimilarity);
+    v1->insertNeighbor(vID2, jSimilarity, commonCnt);
+    v2->insertNeighbor(vID1, jSimilarity);
     checkVertexDTBucket(v1);
     checkVertexDTBucket(v2);
 
@@ -236,8 +230,8 @@ int Graph::insertBetweenLarge(dynscan::Vertex *v1,
     int degree1 = v1->getDegree();
     int degree2 = v2->getDegree();
     double SimScore = myJaccard->compute_similarity(*v1, *v2);
-    v1->insertNeighbor(vID2, -1, SimScore);
-    v2->insertNeighbor(vID1, -1, SimScore);
+    v1->insertNeighbor(vID2, SimScore);
+    v2->insertNeighbor(vID1, SimScore);
     checkVertexDTBucket(v1);
     checkVertexDTBucket(v2);
 

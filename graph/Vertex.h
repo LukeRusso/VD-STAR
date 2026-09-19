@@ -15,8 +15,6 @@ namespace dynscan {
  *  This is a base class of vertex which is also used in the static case.
  */
     class Vertex {
-    private:
-        static MyVector<int> intersectionCntManager;
     public:
         int id;
     protected:
@@ -26,7 +24,7 @@ namespace dynscan {
 
         MyVector<int> adjacentList;
         MyVector<float> neighbor_node_sc;
-        MyVector<int> intersectionCntIndex;
+        MyVector<int> intersectionCnt;
 
         hash_map<int, int> neighborIDAdjacentIndexMap;
 
@@ -73,7 +71,7 @@ namespace dynscan {
          * @param _neighborID
          */
 
-        void insertNeighbor(const int &_neighborID, const int &_intersectionCntManagerIndex, float simScore);
+        void insertNeighbor(const int &_neighborID, float simScore, const int _initialCnt = 0);
 
 
         /**
@@ -88,8 +86,8 @@ namespace dynscan {
 
         void updateNeighborSimScore(float sco, const int _neighborID);
 
-        inline void setIntersectionCnt(const int &_cn, const int index) {
-            intersectionCntManager[index] = _cn;
+        inline void setIntersectionCnt(const int &_cn, const int _index) {
+            intersectionCnt[_index] = _cn;
         }
 
         inline const DTBucketElement* get_dt_bucket_element_by_neighbor_id(const int &_neighborID) {
@@ -125,16 +123,16 @@ namespace dynscan {
          * @param _index
          * @return
          */
-        inline const int &getIntersectionCnt(const int &_index) const {
-            return intersectionCntManager[intersectionCntIndex[_index]];
+        inline const int getIntersectionCnt(const int &_index) const {
+            return intersectionCnt[_index];
         }
 
-        inline const int &increaseIntersectionCnt(const int &_index) {
-            return ++intersectionCntManager[intersectionCntIndex[_index]];
+        inline int increaseIntersectionCnt(const int &_index) {
+            return ++intersectionCnt[_index];
         }
 
         inline void decreaseIntersectionCnt(const int &_index) {
-            --intersectionCntManager[intersectionCntIndex[_index]];
+            --intersectionCnt[_index];
         }
 
         /**
@@ -188,18 +186,12 @@ namespace dynscan {
             return dtBucketPtr.getElement(i, j);
         }
 
-        inline static int allocate_intersection_cnt_index() {
-            int rtn = intersectionCntManager.size();
-            intersectionCntManager.push_back(0);
-            return rtn;
-        }
-
         /**
          * Change the indicator isLarge of a vertex.
          */
         inline void set_large() {
             is_large = true;
-            intersectionCntIndex.clear();
+            intersectionCnt.clear();
         };
 
 

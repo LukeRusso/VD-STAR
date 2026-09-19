@@ -1,11 +1,6 @@
 #include "Vertex.h"
 
 using namespace dynscan;
-/**
- *  Declare the static variables.
- */
-
-MyVector<int> Vertex::intersectionCntManager;
 
 static const int adj_hash_initialization_size = 11;
 
@@ -17,13 +12,13 @@ Vertex::Vertex(const int &_id) {
     neighborIDAdjacentIndexMap.reserve(adj_hash_initialization_size);
 }
 
-void Vertex::insertNeighbor(const int &_neighborID, const int &_intersectionCntManagerIndex, float simScore) {
+void Vertex::insertNeighbor(const int &_neighborID, float simScore, const int _initialCnt) {
     adjacentList.push_back(_neighborID);
     neighbor_node_sc.push_back(simScore);
     NOPtr.insert(make_pair(simScore, _neighborID));
     neighborIDAdjacentIndexMap[_neighborID] = adjacentList.size() - 1;
     if (!is_large) {
-        intersectionCntIndex.push_back(_intersectionCntManagerIndex);
+        intersectionCnt.push_back(_initialCnt);
     }
 }
 
@@ -49,7 +44,7 @@ void Vertex::deleteNeighbor(const int _neighborID) {
         adjacentList.pop_back();
         neighbor_node_sc.pop_back();
         if (!is_large) {
-            intersectionCntIndex.pop_back();
+            intersectionCnt.pop_back();
         }
     } else {
         float pre_sco = neighbor_node_sc[_index];
@@ -66,8 +61,8 @@ void Vertex::deleteNeighbor(const int _neighborID) {
         adjacentList.pop_back();
         neighbor_node_sc.pop_back();
         if (!is_large) {
-            intersectionCntIndex[_index] = intersectionCntIndex[length - 1];
-            intersectionCntIndex.pop_back();
+            intersectionCnt[_index] = intersectionCnt[length - 1];
+            intersectionCnt.pop_back();
         }
         neighborIDAdjacentIndexMap.at(Vertex::adjacentList[_index]) = _index;
     }
