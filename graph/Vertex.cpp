@@ -40,31 +40,26 @@ void Vertex::deleteNeighbor(const int _neighborID) {
     int _index = neighborIDAdjacentIndexMap.at(_neighborID);
     neighborIDAdjacentIndexMap.erase(_neighborID);
     int length = adjacentList.size();
-    if (length == _index + 1) {
-        adjacentList.pop_back();
-        neighbor_node_sc.pop_back();
-        if (!is_large) {
-            intersectionCnt.pop_back();
+    float pre_sco = neighbor_node_sc[_index];
+    auto range = NOPtr.equal_range(pre_sco);
+    for (auto it = range.first; it != range.second; ++it) {
+        if (it->second == _neighborID) {
+            NOPtr.erase(it);
+            break;
         }
-    } else {
-        float pre_sco = neighbor_node_sc[_index];
-        auto range = NOPtr.equal_range(pre_sco);
-        for (auto it = range.first; it != range.second; ++it) {
-            if (it->second == _neighborID) {
-                NOPtr.erase(it);
-                break;
-            }
-        }
-
+    }
+    if (_index < length - 1) {
         adjacentList[_index] = adjacentList[length - 1];
         neighbor_node_sc[_index] = neighbor_node_sc[length - 1];
-        adjacentList.pop_back();
-        neighbor_node_sc.pop_back();
         if (!is_large) {
             intersectionCnt[_index] = intersectionCnt[length - 1];
-            intersectionCnt.pop_back();
         }
         neighborIDAdjacentIndexMap.at(Vertex::adjacentList[_index]) = _index;
+    }
+    adjacentList.pop_back();
+    neighbor_node_sc.pop_back();
+    if (!is_large) {
+        intersectionCnt.pop_back();
     }
 }
 
