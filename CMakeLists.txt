@@ -5,7 +5,7 @@ find_package(pybind11 CONFIG REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 
 set(VDSTAR_ENGINE_SOURCES
-    graph/Graph.cpp graph/Vertex.cpp graph/Jaccard.cpp
+    graph/Graph.cpp graph/Vertex.cpp
     dt/DTBucket.cpp dt/DTInstance.cpp dt/DTManager.cpp
     MyLib/MyTimer.cpp)
 

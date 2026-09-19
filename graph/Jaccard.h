@@ -21,9 +21,9 @@ private:
     long double one_over_failure_prob;
     long double one_over_failure_prob_current_invoke;
 
-    static long long number_invoke;
-    static long long batch_num;
-    static const int batch_size = 500000;
+    long long number_invoke;
+    long long batch_num;
+    const long long batch_size;
 
     inline bool is_a_common_vertex(const dynscan::Vertex &_v, const dynscan::Vertex &_u) {
         if (index <= size_v) {
@@ -87,8 +87,9 @@ public:
      * @param seed The number used to seed the random generator
      */
     Jaccard(long double _one_over_failure_prob, const double &_alpha_rho,
-            unsigned long long seed) :
-            gen(seed), one_over_failure_prob(_one_over_failure_prob), rho(_alpha_rho) {
+            unsigned long long seed, const long long _batch_size = 500000) :
+            gen(seed), rho(_alpha_rho), one_over_failure_prob(_one_over_failure_prob),
+            number_invoke(0), batch_num(0), batch_size(_batch_size) {
         size_v = 0;
         size_u = 0;
         mean = 0;
@@ -100,7 +101,6 @@ public:
     inline void adjust_failure_prob_current_invoke() {
         ++number_invoke;
         batch_num = number_invoke / batch_size + 1;
-        // failure prob = 1.0 / [batch_size * batch_num * (batch_num + 1)] * 1.0 / one_over_failure_prob
         one_over_failure_prob_current_invoke = batch_size * batch_num * (batch_num + 1) * one_over_failure_prob;
     }
 
