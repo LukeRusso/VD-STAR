@@ -7,7 +7,6 @@
 
 class Jaccard {
 private:
-    std::random_device rd;
     std::mt19937_64 gen;
     std::uniform_int_distribution<long long> dis;
     unsigned long long size_v;
@@ -75,12 +74,21 @@ public:
 
     /**
      *
-     * @param one over the _failure_probability
-     * @param _similarity_threshold the epsilon defined on paper
-     * @param alpha times rho defined on paper
+     * @param _one_over_failure_prob one over the failure probability
+     * @param _alpha_rho alpha times rho defined on paper
      */
     Jaccard(long double _one_over_failure_prob, const double &_alpha_rho) :
-            gen(rd()), one_over_failure_prob(_one_over_failure_prob), rho(_alpha_rho){
+            Jaccard(_one_over_failure_prob, _alpha_rho, std::random_device{}()) {}
+
+    /**
+     *
+     * @param _one_over_failure_prob one over the failure probability
+     * @param _alpha_rho alpha times rho defined on paper
+     * @param seed The number used to seed the random generator
+     */
+    Jaccard(long double _one_over_failure_prob, const double &_alpha_rho,
+            unsigned long long seed) :
+            gen(seed), one_over_failure_prob(_one_over_failure_prob), rho(_alpha_rho) {
         size_v = 0;
         size_u = 0;
         mean = 0;
