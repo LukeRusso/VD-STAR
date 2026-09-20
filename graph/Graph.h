@@ -54,6 +54,13 @@ public:
     vector<vector<int>> query(double eps, int mu);
 
 protected:
+    inline dynscan::Vertex *getVertex(int _id) const {
+        if (_id < 1 || (LargeSizeType) _id > vList.size()) {
+            return nullptr;
+        }
+        return vList[_id - 1];
+    }
+    
     /**
      * Make vertex v a large vertex
      * @param v

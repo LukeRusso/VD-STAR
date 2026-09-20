@@ -27,8 +27,8 @@ Graph::~Graph() {
 
 int Graph::insertEdge(int _vID1, int _vID2) {
 
-    auto *v1 = (dynscan::Vertex *) vList[_vID1 - 1];
-    auto *v2 = (dynscan::Vertex *) vList[_vID2 - 1];
+    auto *v1 = getVertex(_vID1);
+    auto *v2 = getVertex(_vID2);
     // check if these vertices already exist. If not, create new vertex/vertices
     // with vertex factory and insert it/them into unordered map.
     if (v1 == NULL) {
@@ -69,8 +69,8 @@ int Graph::insertEdge(int _vID1, int _vID2) {
 }
 
 int Graph::removeEdge(int _vID1, int _vID2) {
-    auto *v1 = (dynscan::Vertex *) vList[_vID1 - 1];
-    auto *v2 = (dynscan::Vertex *) vList[_vID2 - 1];
+    auto *v1 = getVertex(_vID1);
+    auto *v2 = getVertex(_vID2);
 
     if (v1 == NULL || v2 == NULL)
         return 1;
@@ -113,7 +113,7 @@ int Graph::insertBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {
     int *adjacentList1 = v1->getAdjacentList();
     for (int i = 0; i < degree1; ++i) {
         const int &neighborID = adjacentList1[i];
-        auto *neighbor_v = (dynscan::Vertex *) vList[neighborID - 1];
+        auto *neighbor_v = getVertex(neighborID);
         const int index = v2->getAdjacentIndex(neighborID);
         if (index != -1) {
             ++commonCnt;
@@ -143,8 +143,7 @@ int Graph::deleteBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {
 
     for (int i = 0; i < degree1; i++) {
         int neighborID = adjacentList1[i];
-        dynscan::Vertex *neighbor_v =
-                (dynscan::Vertex *) vList[neighborID - 1];
+        dynscan::Vertex *neighbor_v = getVertex(neighborID);
         int index = v2->getAdjacentIndex(neighborID);
         if (neighbor_v->isLarge()) {
             continue;
@@ -171,8 +170,7 @@ int Graph::insertBetweenSmallAndLarge(dynscan::Vertex *v1,
     int degree2 = v2->getDegree();
     for (int i = 0; i < degree1; i++) {
         int neighborID = v1->getNeighborID(i);
-        dynscan::Vertex *neighbor_v =
-                (dynscan::Vertex *) vList[neighborID - 1];
+        dynscan::Vertex *neighbor_v = getVertex(neighborID);
         int index = v2->getAdjacentIndex(neighborID);
         // if neighbor vertex is a common neighbor of v1 and v2
         if (index != -1) {
@@ -213,8 +211,7 @@ int Graph::deleteBetweenSmallAndLarge(dynscan::Vertex *v1,
 
     for (int i = 0; i < degree1; i++) {
         int neighborID = v1->getNeighborID(i);
-        dynscan::Vertex *neighbor_v =
-                (dynscan::Vertex *) vList[neighborID - 1];
+        dynscan::Vertex *neighbor_v = getVertex(neighborID);
         if (neighbor_v->isLarge())
             continue;
         int index = v2->getAdjacentIndex(neighborID);
@@ -315,8 +312,7 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
             DTBucketElement *neighbor_bucket_element = curInstance->get_element(VID1);
             DTBucketElement *bucket_element = curInstance->get_Another_Bucket_Element(neighbor_bucket_element);
             int neighborID = bucket_element->get_neighbor_id();
-            auto *neighborVertex =
-                    (dynscan::Vertex *) vList[neighborID - 1];
+            auto *neighborVertex = getVertex(neighborID);
             int neighborUpdateCnt = neighborVertex->getCnt();
             //update tau since it is a new round
             int bucket_index = curInstance->get_exp();
@@ -368,8 +364,7 @@ int Graph::makeLarge(dynscan::Vertex *v) {
     int vUpdateCnt = v->getCnt();
     for (int i = 0; i < vDegree; i++) {
         int neighborID = v->getNeighborID(i);
-        dynscan::Vertex *neighbor_v =
-                (dynscan::Vertex *) vList[neighborID - 1];
+        dynscan::Vertex *neighbor_v = getVertex(neighborID);
 
         if (neighbor_v->isLarge()){
             // already has DT instance with large ones so skip
@@ -406,8 +401,8 @@ vector<vector<int>> Graph::query(double eps, int mu) {
     bool* isCore = new bool[vList.size() + 1]();
     
     for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
-        dynscan::Vertex *v = (dynscan::Vertex *) vList[i];
-        if(v->getDegree() < mu){
+        dynscan::Vertex *v = getVertex(i + 1);
+        if(v == nullptr || v->getDegree() < mu){
             continue;
         }
         int temp_m_C = v->query(eps, mu);
@@ -441,9 +436,13 @@ vector<vector<int>> Graph::query(double eps, int mu) {
                 if(rit->first >= eps){
                     int w = rit->second;
                     if(visited[w]) continue;
+                    dynscan::Vertex *wVertex = getVertex(w);
+                    if (wVertex == nullptr) {
+                        continue;
+                    }
                     visited[w] = 1;
                     C.push_back(w);
-                    if(isCore[w]) Q.push(vList[w - 1]);
+                    if(isCore[w]) Q.push(wVertex);
                 }
                 else{
                     break;
