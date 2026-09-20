@@ -111,14 +111,7 @@ int main(int argc, char **argv) {
     }
     fclose(f);
 
-    MyVector<dynscan::Vertex *> _vList;
-    _vList.reserve(n);
-
-    for (int i = 0; i < n; i++) {
-        dynscan::Vertex *newVertex = new dynscan::Vertex(i + 1);
-        _vList.push_back(newVertex);
-    }
-    Graph graph(std::move(_vList), para.rho);
+    Graph graph(n, para.rho);
     printf("Graph generation finished with %d vertices and %d edges.\n", n,
            m / 2);
 

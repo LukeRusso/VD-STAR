@@ -5,6 +5,7 @@
 #include "Jaccard.h"
 #include "../MyLib/MyVector.h"
 #include <cmath>
+#include <optional>
 #include <memory>
 #include <random>
 #include <vector>
@@ -35,7 +36,7 @@ public:
     /*
      *  The constructor of Graph.
      */
-    Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho);
+    Graph(int _vertex_num, double _rho, std::optional<unsigned long long> seed = std::nullopt);
 
     ~Graph();
 

@@ -4,11 +4,19 @@
 #include "Graph.h"
 #include "../MyLib/MyTimer.h"
 
-Graph::Graph(MyVector<dynscan::Vertex *> &&_vList, double _rho)
-        : rho(_rho), vList(std::move(_vList)) {
-    int vertex_number = (int) vList.size();
+Graph::Graph(int _vertex_num, double _rho, std::optional<unsigned long long> seed)
+        : rho(_rho) {
+    if(_vertex_num < 1) {
+        throw std::out_of_range("For Graph construction vertex count must be >= 1, got " + std::to_string(_vertex_num));
+    }
+    vList.reserve(2* _vertex_num);
+    for (int i = 0; i < _vertex_num; i++) {
+        vList.push_back(new dynscan::Vertex(i + 1));
+    }
     computePermutationNumber(omega * _rho);
-    myJaccard = std::make_unique<Jaccard>((long double) vertex_number, omega * rho);
+    myJaccard = seed
+        ? std::make_unique<Jaccard>((long double) _vertex_num, omega * rho, *seed)
+        : std::make_unique<Jaccard>((long double) _vertex_num, omega * rho);
 }
 
 Graph::~Graph() {

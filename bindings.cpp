@@ -10,15 +10,7 @@ std::vector<std::vector<int>> cluster(
         int n,
         const std::vector<std::pair<int, int>>& edges,
         double eps, int mu, double rho) {
-
-    MyVector<dynscan::Vertex *> _vList;
-    _vList.reserve(n);
-
-    for (int i = 0; i < n; i++) {
-        dynscan::Vertex *newVertex = new dynscan::Vertex(i + 1);
-        _vList.push_back(newVertex);
-    }
-    Graph graph(std::move(_vList), rho);
+    Graph graph(n, rho);
 
     for (int i = 0; i < edges.size(); i++) {
         graph.insertEdge(edges[i].first, edges[i].second);
