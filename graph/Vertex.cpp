@@ -38,6 +38,7 @@ void Vertex::updateNeighborSimScore(float sco, const int _neighborID) {
 
 void Vertex::deleteNeighbor(const int _neighborID) {
     int _index = neighborIDAdjacentIndexMap.at(_neighborID);
+    detachDTBucketElement(_neighborID);
     neighborIDAdjacentIndexMap.erase(_neighborID);
     int length = adjacentList.size();
     float pre_sco = neighbor_node_sc[_index];

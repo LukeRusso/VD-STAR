@@ -74,19 +74,14 @@ int Graph::removeEdge(int _vID1, int _vID2) {
 
     if (v1 == NULL || v2 == NULL)
         return 1;
+
+    const DTBucketElement *v1Element = v1->get_dt_bucket_element_by_neighbor_id(_vID2);
+
     v1->deleteNeighbor(_vID2);
     v2->deleteNeighbor(_vID1);
 
-    const DTBucketElement* dtBucketElement = v1->get_dt_bucket_element_by_neighbor_id(_vID2);
-    if (dtBucketElement) {
-        DTInstance* instance = dtBucketElement->get_dtInstance();
-        DTBucketElement *otherDtBucketElement = instance->get_Another_Bucket_Element(dtBucketElement);
-        const int _bucket_index = instance->get_exp();
-        v1->DeleteElement(_bucket_index, dtBucketElement->get_element_index());
-        v2->DeleteElement(_bucket_index, otherDtBucketElement->get_element_index());
-        v1->set_dt_bucket_element_map_by_neighbor_id(_vID2, nullptr);
-        v2->set_dt_bucket_element_map_by_neighbor_id(_vID1, nullptr);
-        dtManager.removeInstance(instance);
+    if (v1Element) {
+        dtManager.removeInstance(v1Element->get_dtInstance());
     }
     if ((v1->isLarge() && !v2->isLarge()) ||
         v1->getDegree() > v2->getDegree()) {

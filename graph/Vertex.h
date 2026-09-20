@@ -99,6 +99,20 @@ namespace dynscan {
             neighborID_DTBucketElement_Map[_neighborID] = dtBucketElement;
         }
 
+        inline void detachDTBucketElement(const int &_neighborID) {
+            auto it = neighborID_DTBucketElement_Map.find(_neighborID);
+            if (it == neighborID_DTBucketElement_Map.end()) {
+                return;
+            }
+            DTBucketElement *element = it->second;
+            neighborID_DTBucketElement_Map.erase(it);
+            if (element == nullptr) {
+                return;
+            }
+            const int bucketIndex = element->get_dtInstance()->get_exp();
+            dtBucketPtr.DeleteElement(bucketIndex, element->get_element_index());
+        }
+
         /**
          * @param _neighborID
          * @return the index of the given neighbor ID in the adjacent list of the current vertex.
