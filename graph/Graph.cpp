@@ -26,16 +26,15 @@ Graph::~Graph() {
 }
 
 int Graph::insertEdge(int _vID1, int _vID2) {
+    if (_vID1 < 1 || _vID2 < 1) {
+        throw std::out_of_range("Graph::insertEdge: vertex id must be >= 1");
+    }
 
     auto *v1 = getVertex(_vID1);
     auto *v2 = getVertex(_vID2);
-    // check if these vertices already exist. If not, create new vertex/vertices
-    // with vertex factory and insert it/them into unordered map.
-    if (v1 == NULL) {
-        v1 = (dynscan::Vertex *) createVertex(_vID1);
-    }
-    if (v2 == NULL) {
-        v2 = (dynscan::Vertex *) createVertex(_vID2);
+
+    if (v1 == NULL || v2 == NULL) {
+        throw std::out_of_range("Graph::insertEdge: endpoint is not a live vertex");
     }
     if (!v1->isLarge() && !v2->isLarge()) {
         if (v1->getDegree() >= permutationNum - 1 &&
@@ -96,6 +95,26 @@ int Graph::removeEdge(int _vID1, int _vID2) {
         deleteBetweenLarge(v1, v2);
     }
     return 0;
+}
+
+dynscan::Vertex *Graph::addVertex() {
+    vList.push_back(new dynscan::Vertex((int) vList.size() + 1));
+    return vList[vList.size() - 1];
+}
+
+bool Graph::removeVertex(int _id) {
+    dynscan::Vertex *v = getVertex(_id);
+    if (v == NULL) {
+        return false;
+    }
+
+    while (v->getDegree() > 0) {
+        removeEdge(_id, v->getNeighborID(0));
+    }
+
+    vList[_id - 1] = NULL;
+    delete v;
+    return true;
 }
 
 int Graph::insertBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {

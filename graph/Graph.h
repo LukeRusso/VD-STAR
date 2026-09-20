@@ -50,6 +50,9 @@ public:
      */
     int removeEdge(int _vID1, int _vID2);
 
+    dynscan::Vertex *addVertex();
+
+    bool removeVertex(int _id);
 
     vector<vector<int>> query(double eps, int mu);
 
@@ -104,16 +107,6 @@ protected:
     // Functions deal with vertices and signatures
     // *****************************************
 
-    /**
-     *
-     * @param _id
-     * @return create new vertex with vertex factory and return its pointer.
-     */
-    dynscan::Vertex* createVertex(const int &_id){
-        dynscan::Vertex *newVertex = new dynscan::Vertex(_id);
-        vList[_id - 1] = newVertex;
-        return newVertex;
-    }
 
     // *****************************************
     // Functions to maintain dt bucket
