@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from vdstar_core import Graph
 from vdstar_core import cluster as _cluster_core
 
-__all__ = ["cluster"]
+__all__ = ["Graph", "cluster"]
 
 
 def cluster(
