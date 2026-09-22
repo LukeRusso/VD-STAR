@@ -30,7 +30,7 @@ protected:
   std::unique_ptr<Jaccard> myJaccard;
 
   // The list of all the vertices.
-  MyVector<dynscan::Vertex *> vList;
+  MyVector<std::unique_ptr<dynscan::Vertex>> vList;
 
 public:
   /*
@@ -67,7 +67,7 @@ protected:
     if (_id < 1 || (LargeSizeType)_id > vList.size()) {
       return nullptr;
     }
-    return vList[_id - 1];
+    return vList[_id - 1].get();
   }
 
   /**

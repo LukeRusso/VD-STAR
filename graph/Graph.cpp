@@ -14,7 +14,7 @@ Graph::Graph(int _vertex_num, double _rho,
   }
   vList.reserve(2 * _vertex_num);
   for (int i = 0; i < _vertex_num; i++) {
-    vList.push_back(new dynscan::Vertex(i + 1));
+    vList.push_back(std::make_unique<dynscan::Vertex>(i + 1));
   }
   computePermutationNumber(omega * _rho);
   myJaccard =
@@ -23,11 +23,7 @@ Graph::Graph(int _vertex_num, double _rho,
            : std::make_unique<Jaccard>((long double)_vertex_num, omega * rho);
 }
 
-Graph::~Graph() {
-  for (int i = 0; i < vList.size(); ++i) {
-    delete vList[i];
-  }
-}
+Graph::~Graph() {}
 
 Graph::Graph(Graph &&other) noexcept
     : rho(other.rho), dtManager(std::move(other.dtManager)),
@@ -110,8 +106,8 @@ int Graph::removeEdge(int _vID1, int _vID2) {
 }
 
 dynscan::Vertex *Graph::addVertex() {
-  vList.push_back(new dynscan::Vertex((int)vList.size() + 1));
-  return vList[vList.size() - 1];
+  vList.push_back(std::make_unique<dynscan::Vertex>((int)vList.size() + 1));
+  return vList[vList.size() - 1].get();
 }
 
 bool Graph::removeVertex(int _id) {
@@ -124,8 +120,7 @@ bool Graph::removeVertex(int _id) {
     removeEdge(_id, v->getNeighborID(0));
   }
 
-  vList[_id - 1] = NULL;
-  delete v;
+  vList[_id - 1].reset();
   return true;
 }
 
