@@ -15,6 +15,11 @@ protected:
   MyVector<DTInstance *> dtInstanceList;
 
 public:
+  DTManager() = default;
+  DTManager(const DTManager &) = delete;
+  DTManager &operator=(const DTManager &) = delete;
+  DTManager(DTManager &&) = default;
+  DTManager &operator=(DTManager &&) = default;
   ~DTManager();
 
   /**

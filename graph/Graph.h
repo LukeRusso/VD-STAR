@@ -39,6 +39,11 @@ public:
   Graph(int _vertex_num, double _rho,
         std::optional<unsigned long long> seed = std::nullopt);
 
+  Graph(const Graph &) = delete;
+  Graph &operator=(const Graph &) = delete;
+
+  Graph(Graph &&) noexcept;
+
   ~Graph();
 
   /*

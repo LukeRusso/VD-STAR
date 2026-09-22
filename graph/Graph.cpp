@@ -29,6 +29,11 @@ Graph::~Graph() {
   }
 }
 
+Graph::Graph(Graph &&other) noexcept
+    : rho(other.rho), dtManager(std::move(other.dtManager)),
+      permutationNum(other.permutationNum),
+      myJaccard(std::move(other.myJaccard)), vList(std::move(other.vList)) {}
+
 int Graph::insertEdge(int _vID1, int _vID2) {
   if (_vID1 < 1 || _vID2 < 1) {
     throw std::out_of_range("Graph::insertEdge: vertex id must be >= 1");
@@ -318,7 +323,6 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
           curInstance->receive_report();
           if (!curInstance->is_round_end()) {
             // not new round
-
           } else {
             newRounds.push_back(curInstance);
           }
@@ -351,7 +355,6 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
         neighbor_bucket_element->update_cnt(neighborUpdateCnt);
         neighborVertex->addDTBucketElement(
             bucket_index, neighbor_bucket_element, neighborUpdateCnt);
-
       } else {
         // mature, relabel (curVertex, neighbor)
 
