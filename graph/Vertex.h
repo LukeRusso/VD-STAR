@@ -1,12 +1,12 @@
 #ifndef DYNSCAN_VERTEX_H
 #define DYNSCAN_VERTEX_H
 
-#include <map>
-#include <memory>
 #include "../MyLib/MyVector.h"
+#include "../Tessil_robin_map/robin_map.h"
 #include "../dt/DTBucket.h"
 #include "../dt/DTInstance.h"
-#include "../Tessil_robin_map/robin_map.h"
+#include <map>
+#include <memory>
 
 #define hash_map tsl::robin_map
 
@@ -14,211 +14,193 @@ namespace dynscan {
 /*
  *  This is a base class of vertex which is also used in the static case.
  */
-    class Vertex {
-    public:
-        int id;
-    protected:
-        int updateCnt;
+class Vertex {
+public:
+  int id;
 
-        bool is_large;
+protected:
+  int updateCnt;
 
-        MyVector<int> adjacentList;
-        MyVector<float> neighbor_node_sc;
-        MyVector<int> intersectionCnt;
+  bool is_large;
 
-        hash_map<int, int> neighborIDAdjacentIndexMap;
+  MyVector<int> adjacentList;
+  MyVector<float> neighbor_node_sc;
+  MyVector<int> intersectionCnt;
 
-        hash_map<int, DTBucketElement*> neighborID_DTBucketElement_Map;
+  hash_map<int, int> neighborIDAdjacentIndexMap;
 
-        // The bucket list for managing all the related DT instances.
-        DTBucket dtBucketPtr;
+  hash_map<int, DTBucketElement *> neighborID_DTBucketElement_Map;
 
+  // The bucket list for managing all the related DT instances.
+  DTBucket dtBucketPtr;
 
+public:
+  multimap<float, int> NOPtr;
+  /**
+   * Return neighbor ID at given _index
+   * @param _index
+   * @return
+   */
+  inline int getNeighborID(const int &_index) const {
+    return adjacentList[_index];
+  }
 
-    public:
-        multimap<float, int> NOPtr;
-        /**
-         * Return neighbor ID at given _index
-         * @param _index
-         * @return
-         */
-        inline int getNeighborID(const int &_index) const {
-            return adjacentList[_index];
-        }
+  /**
+   *
+   * @return return current vertex's degree
+   */
+  inline int getDegree() const { return adjacentList.size(); };
 
+  Vertex(const int &_id);
 
-        /**
-         *
-         * @return return current vertex's degree
-         */
-        inline int getDegree() const {
-            return adjacentList.size();
-        };
+  Vertex(const Vertex &) = delete;
+  Vertex &operator=(const Vertex &) = delete;
 
+  //        Vertex(const int &_id, MyVector<int> &_adjacentList);
+  //
+  //        Vertex(const int &_id, const int *&_adjacentList, const int
+  //        &_adjNum);
+  int query(double esp, int mu);
 
-        Vertex(const int &_id);
+  /**
+   * Insert a new neighbor into adjacent list
+   * @param _neighborID
+   */
 
-        Vertex(const Vertex &) = delete;
-        Vertex &operator=(const Vertex &) = delete;
+  void insertNeighbor(const int &_neighborID, float simScore,
+                      const int _initialCnt = 0);
 
-//        Vertex(const int &_id, MyVector<int> &_adjacentList);
-//
-//        Vertex(const int &_id, const int *&_adjacentList, const int &_adjNum);
-        int query(double esp, int mu);
+  /**
+   * Delete a neighbor at give index
+   * @param _index
+   */
+  void deleteNeighbor(const int _neighborID);
 
-        /**
-         * Insert a new neighbor into adjacent list
-         * @param _neighborID
-         */
+  inline int *getAdjacentList() { return Vertex::adjacentList.get_list(); };
 
-        void insertNeighbor(const int &_neighborID, float simScore, const int _initialCnt = 0);
+  void updateNeighborSimScore(float sco, const int _neighborID);
 
+  inline void setIntersectionCnt(const int &_cn, const int _index) {
+    intersectionCnt[_index] = _cn;
+  }
 
-        /**
-         * Delete a neighbor at give index
-         * @param _index
-         */
-        void deleteNeighbor(const int _neighborID);
+  inline const DTBucketElement *
+  get_dt_bucket_element_by_neighbor_id(const int &_neighborID) {
+    const auto &it = neighborID_DTBucketElement_Map.find(_neighborID);
+    return it == neighborID_DTBucketElement_Map.end() ? nullptr : it->second;
+  }
 
-        inline int *getAdjacentList() {
-            return Vertex::adjacentList.get_list();
-        };
+  inline void
+  set_dt_bucket_element_map_by_neighbor_id(const int &_neighborID,
+                                           DTBucketElement *dtBucketElement) {
+    neighborID_DTBucketElement_Map[_neighborID] = dtBucketElement;
+  }
 
-        void updateNeighborSimScore(float sco, const int _neighborID);
+  inline void detachDTBucketElement(const int &_neighborID) {
+    auto it = neighborID_DTBucketElement_Map.find(_neighborID);
+    if (it == neighborID_DTBucketElement_Map.end()) {
+      return;
+    }
+    DTBucketElement *element = it->second;
+    neighborID_DTBucketElement_Map.erase(it);
+    if (element == nullptr) {
+      return;
+    }
+    const int bucketIndex = element->get_dtInstance()->get_exp();
+    dtBucketPtr.DeleteElement(bucketIndex, element->get_element_index());
+  }
 
-        inline void setIntersectionCnt(const int &_cn, const int _index) {
-            intersectionCnt[_index] = _cn;
-        }
+  /**
+   * @param _neighborID
+   * @return the index of the given neighbor ID in the adjacent list of the
+   * current vertex.
+   */
+  inline const int getAdjacentIndex(const int &_neighborID) const {
+    auto it = neighborIDAdjacentIndexMap.find(_neighborID);
+    return it == neighborIDAdjacentIndexMap.end() ? -1 : it->second;
+  }
 
-        inline const DTBucketElement* get_dt_bucket_element_by_neighbor_id(const int &_neighborID) {
-            const auto &it = neighborID_DTBucketElement_Map.find(_neighborID);
-            return it == neighborID_DTBucketElement_Map.end() ? nullptr : it->second;
-        }
+  /**
+   * Caution. Only used for Class Jaccard.
+   * @param _neighbor
+   * @return
+   */
+  inline bool has_neighbor(const int &_neighbor) const {
+    return neighborIDAdjacentIndexMap.find(_neighbor) !=
+               neighborIDAdjacentIndexMap.end() ||
+           this->id == _neighbor;
+  }
 
-        inline void set_dt_bucket_element_map_by_neighbor_id(const int &_neighborID, DTBucketElement* dtBucketElement) {
-            neighborID_DTBucketElement_Map[_neighborID] = dtBucketElement;
-        }
+  /**
+   * Return intersection count at given _index
+   * @param _index
+   * @return
+   */
+  inline const int getIntersectionCnt(const int &_index) const {
+    return intersectionCnt[_index];
+  }
 
-        inline void detachDTBucketElement(const int &_neighborID) {
-            auto it = neighborID_DTBucketElement_Map.find(_neighborID);
-            if (it == neighborID_DTBucketElement_Map.end()) {
-                return;
-            }
-            DTBucketElement *element = it->second;
-            neighborID_DTBucketElement_Map.erase(it);
-            if (element == nullptr) {
-                return;
-            }
-            const int bucketIndex = element->get_dtInstance()->get_exp();
-            dtBucketPtr.DeleteElement(bucketIndex, element->get_element_index());
-        }
+  inline int increaseIntersectionCnt(const int &_index) {
+    return ++intersectionCnt[_index];
+  }
 
-        /**
-         * @param _neighborID
-         * @return the index of the given neighbor ID in the adjacent list of the current vertex.
-         */
-        inline const int getAdjacentIndex(const int &_neighborID) const {
-            auto it = neighborIDAdjacentIndexMap.find(_neighborID);
-            return it == neighborIDAdjacentIndexMap.end() ? -1 : it->second;
-        }
+  inline void decreaseIntersectionCnt(const int &_index) {
+    --intersectionCnt[_index];
+  }
 
-        /**
-         * Caution. Only used for Class Jaccard.
-         * @param _neighbor
-         * @return
-         */
-        inline bool has_neighbor(const int &_neighbor) const {
-            return neighborIDAdjacentIndexMap.find(_neighbor) != neighborIDAdjacentIndexMap.end()
-                   || this->id == _neighbor;
-        }
+  /**
+   *
+   * @param the ID of vertex to delete from
+   */
+  inline void DeleteElement(int bucketIndex, int elementIndex) {
+    dtBucketPtr.DeleteElement(bucketIndex, elementIndex);
+  }
 
-        /**
-         * Return intersection count at given _index
-         * @param _index
-         * @return
-         */
-        inline const int getIntersectionCnt(const int &_index) const {
-            return intersectionCnt[_index];
-        }
+  inline void increaseUpdateCnt() { ++updateCnt; }
 
-        inline int increaseIntersectionCnt(const int &_index) {
-            return ++intersectionCnt[_index];
-        }
+  inline int getCnt() const { return updateCnt; }
 
-        inline void decreaseIntersectionCnt(const int &_index) {
-            --intersectionCnt[_index];
-        }
+  /**
+   * @param bucket index, element to insert
+   * @return return the new number elements in the bucket.
+   */
 
-        /**
-         *
-         * @param the ID of vertex to delete from
-         */
-        inline void DeleteElement(int bucketIndex, int elementIndex) {
-            dtBucketPtr.DeleteElement(bucketIndex, elementIndex);
-        }
+  inline int addDTBucketElement(int i, DTBucketElement *e, int updateCnt) {
+    return dtBucketPtr.InsertNewELement(i, e, updateCnt);
+  }
 
+  inline bool CheckEmptyByIndex(int index) {
+    return dtBucketPtr.CheckEmptyByIndex(index);
+  }
 
-        inline void increaseUpdateCnt() {
-            ++updateCnt;
-        }
+  inline int listSize() { return dtBucketPtr.listSize(); }
 
-        inline int getCnt() const {
-            return updateCnt;
-        }
+  inline int sizeByIndex(int i) { return dtBucketPtr.sizeByIndex(i); }
 
-        /**
-        * @param bucket index, element to insert
-        * @return return the new number elements in the bucket.
-        */
+  inline void updateBucketCount(int i, int updateCount) {
+    dtBucketPtr.updateCnt(i, updateCount);
+  }
 
-        inline int addDTBucketElement(int i, DTBucketElement* e, int updateCnt) {
-            return dtBucketPtr.InsertNewELement(i, e, updateCnt);
-        }
+  inline int getBucketCount(int i) { return dtBucketPtr.getCnt(i); }
 
-        inline bool CheckEmptyByIndex(int index) {
-            return dtBucketPtr.CheckEmptyByIndex(index);
-        }
+  inline DTBucketElement *getDTBucketElement(int i, int j) {
+    return dtBucketPtr.getElement(i, j);
+  }
 
-        inline int listSize() {
-            return dtBucketPtr.listSize();
-        }
+  /**
+   * Change the indicator isLarge of a vertex.
+   */
+  inline void set_large() {
+    is_large = true;
+    intersectionCnt.clear();
+  };
 
-        inline int sizeByIndex(int i) {
-            return dtBucketPtr.sizeByIndex(i);
-        }
+  /**
+   * Return true if vertex is large vertex; false if not
+   * @return
+   */
+  inline const bool &isLarge() const { return is_large; };
+};
 
-        inline void updateBucketCount(int i, int updateCount) {
-            dtBucketPtr.updateCnt(i, updateCount);
-        }
-
-        inline int getBucketCount(int i) {
-            return dtBucketPtr.getCnt(i);
-        }
-
-
-        inline DTBucketElement* getDTBucketElement(int i, int j) {
-            return dtBucketPtr.getElement(i, j);
-        }
-
-        /**
-         * Change the indicator isLarge of a vertex.
-         */
-        inline void set_large() {
-            is_large = true;
-            intersectionCnt.clear();
-        };
-
-
-        /**
-         * Return true if vertex is large vertex; false if not
-         * @return
-         */
-        inline const bool &isLarge() const {
-            return is_large;
-        };
-
-
-    };
-
-}
-#endif //DYNSCAN_VERTEX_H
+} // namespace dynscan
+#endif // DYNSCAN_VERTEX_H

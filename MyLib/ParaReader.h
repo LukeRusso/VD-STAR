@@ -11,5 +11,4 @@ extern int getNextChar(char *str);
  */
 extern void getNextWord(char *str, char *word);
 
-
 #endif /* MYLIB_PARAREADER_H_ */

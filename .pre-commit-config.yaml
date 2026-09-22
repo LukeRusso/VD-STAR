@@ -1,0 +1,12 @@
+---
+# Auto-format C++ on commit.
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        description: Format C++ sources with the repo's .clang-format.
+        entry: clang-format -i
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
+        exclude: ^(boost_1_66_0|Tessil_robin_map)/
