@@ -11,4 +11,6 @@ set(VDSTAR_ENGINE_SOURCES
 
 add_executable(DynamicStrClu_ours main.cpp ${VDSTAR_ENGINE_SOURCES} MyLib/ParaReader.cpp)
 pybind11_add_module(vdstar_core bindings.cpp ${VDSTAR_ENGINE_SOURCES})
-install(TARGETS vdstar_core DESTINATION ${SKBUILD_PLATLIB_DIR})
+if(DEFINED SKBUILD_PLATLIB_DIR)
+    install(TARGETS vdstar_core LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR})
+endif()

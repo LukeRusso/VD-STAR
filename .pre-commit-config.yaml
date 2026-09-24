@@ -9,4 +9,4 @@ repos:
         entry: clang-format -i
         language: system
         files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
-        exclude: ^(boost_1_66_0|Tessil_robin_map)/
+        exclude: ^(boost_1_92_0|Tessil_robin_map)/
