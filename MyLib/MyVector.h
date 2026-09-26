@@ -1,6 +1,10 @@
 #ifndef MYVECTOR_H_
 #define MYVECTOR_H_
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/split_member.hpp>
 #include <cstring>
 #include <stdexcept>
 #include <stdio.h>
@@ -31,6 +35,8 @@ public:
 };
 
 template <class T, class SizeType = unsigned int> class MyVector {
+  friend class boost::serialization::access;
+
 public:
   MyVector();
 
@@ -60,6 +66,11 @@ public:
    *  Allocate memory to the array with specified length.
    */
   void reserve(SizeType len);
+
+  /*
+   *  Resize to n elements, default constructing the new ones.
+   */
+  void resize(SizeType n);
 
   /*
    *  Shrink the array to fit the occupied size.
@@ -127,6 +138,14 @@ protected:
    *  The array of elements.
    */
   T *elementList;
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
+
+  template <class Archive>
+  void save(Archive &ar, const unsigned int version) const;
+
+  template <class Archive> void load(Archive &ar, const unsigned int version);
 
   /*
    *  Enlarge the length of the array by a factor of 2.
@@ -199,6 +218,24 @@ template <class T, class SizeType>
 void MyVector<T, SizeType>::reserve(SizeType len) {
   if (len > this->length) {
     this->reallocate_to(len);
+  }
+}
+
+template <class T, class SizeType>
+void MyVector<T, SizeType>::resize(SizeType n) {
+  if (n > this->elementNum) {
+    this->reserve(n);
+    if constexpr (!std::is_trivially_default_constructible<T>::value) {
+      for (SizeType i = this->elementNum; i < n; ++i) {
+        new (&this->elementList[i]) T();
+      }
+    }
+    this->elementNum = n;
+  } else if (n < this->elementNum) {
+    while (this->elementNum > n) {
+      this->elementNum--;
+      this->elementList[this->elementNum].~T();
+    }
   }
 }
 
@@ -306,6 +343,52 @@ template <class T, class SizeType> void MyVector<T, SizeType>::enlarge() {
   } else {
     this->reserve(this->length * 2);
   }
+}
+
+template <class T, class SizeType>
+template <class Archive>
+void MyVector<T, SizeType>::save(Archive &ar, const unsigned int) const {
+  const SizeType n = elementNum;
+  ar & n;
+  if (n == 0) {
+    return;
+  }
+  if constexpr (std::is_trivially_copyable<T>::value) {
+    ar &boost::serialization::make_binary_object(
+        elementList, static_cast<std::size_t>(n) * sizeof(T));
+  } else {
+    for (SizeType i = 0; i < n; ++i) {
+      ar &elementList[i];
+    }
+  }
+}
+
+template <class T, class SizeType>
+template <class Archive>
+void MyVector<T, SizeType>::load(Archive &ar, const unsigned int) {
+  SizeType n = 0;
+  ar & n;
+  if constexpr (std::is_trivially_copyable<T>::value) {
+    resize(n);
+    if (n != 0) {
+      ar &boost::serialization::make_binary_object(
+          elementList, static_cast<std::size_t>(n) * sizeof(T));
+    }
+  } else {
+    clear();
+    reserve(n);
+    for (SizeType i = 0; i < n; ++i) {
+      T value;
+      ar & value;
+      push_back(std::move(value));
+    }
+  }
+}
+
+template <class T, class SizeType>
+template <class Archive>
+void MyVector<T, SizeType>::serialize(Archive &ar, const unsigned int version) {
+  boost::serialization::split_member(ar, *this, version);
 }
 
 #endif /* MYVECTOR_H_ */
