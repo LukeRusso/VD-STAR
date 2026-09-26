@@ -8,6 +8,8 @@
 #include <map>
 #include <memory>
 
+#include <boost/serialization/access.hpp>
+
 #define hash_map tsl::robin_map
 
 namespace dynscan {
@@ -15,6 +17,8 @@ namespace dynscan {
  *  This is a base class of vertex which is also used in the static case.
  */
 class Vertex {
+  friend class boost::serialization::access;
+
 public:
   int id;
 
@@ -200,7 +204,39 @@ public:
    * @return
    */
   inline const bool &isLarge() const { return is_large; };
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
 };
+
+template <class Archive>
+void Vertex::serialize(Archive &ar, const unsigned int) {
+  int32_t degree = getDegree();
+  uint8_t large = is_large ? 1 : 0;
+
+  ar & id;
+  ar & updateCnt;
+  ar & large;
+  ar & degree;
+
+  ar & adjacentList;
+  ar & neighbor_node_sc;
+  ar & intersectionCnt;
+
+  if (Archive::is_loading::value) {
+    is_large = (large != 0);
+    if (is_large) {
+      intersectionCnt.clear();
+    }
+
+    neighborIDAdjacentIndexMap.clear();
+    NOPtr.clear();
+    for (int32_t i = 0; i < degree; ++i) {
+      neighborIDAdjacentIndexMap[adjacentList[i]] = i;
+      NOPtr.insert(make_pair(neighbor_node_sc[i], adjacentList[i]));
+    }
+  }
+}
 
 } // namespace dynscan
 #endif // DYNSCAN_VERTEX_H
