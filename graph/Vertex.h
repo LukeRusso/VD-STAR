@@ -5,8 +5,11 @@
 #include "../Tessil_robin_map/robin_map.h"
 #include "../dt/DTBucket.h"
 #include "../dt/DTInstance.h"
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #include <boost/serialization/access.hpp>
 
@@ -20,12 +23,12 @@ class Vertex {
   friend class boost::serialization::access;
 
 public:
-  int id;
+  int id = 0;
 
 protected:
-  int updateCnt;
+  int updateCnt = 0;
 
-  bool is_large;
+  bool is_large = false;
 
   MyVector<int> adjacentList;
   MyVector<float> neighbor_node_sc;
@@ -54,6 +57,8 @@ public:
    * @return return current vertex's degree
    */
   inline int getDegree() const { return adjacentList.size(); };
+
+  Vertex() = default;
 
   Vertex(const int &_id);
 
@@ -224,6 +229,15 @@ void Vertex::serialize(Archive &ar, const unsigned int) {
   ar & intersectionCnt;
 
   if (Archive::is_loading::value) {
+    const int32_t adjSize = static_cast<int32_t>(adjacentList.size());
+    const int32_t scSize = static_cast<int32_t>(neighbor_node_sc.size());
+    if (degree != adjSize || degree != scSize) {
+      throw std::runtime_error(
+          "Vertex::serialize: degree " + std::to_string(degree) +
+          " does not match adjacentList/neighbor_node_sc sizes " +
+          std::to_string(adjSize) + "/" + std::to_string(scSize));
+    }
+
     is_large = (large != 0);
     if (is_large) {
       intersectionCnt.clear();
@@ -231,7 +245,7 @@ void Vertex::serialize(Archive &ar, const unsigned int) {
 
     neighborIDAdjacentIndexMap.clear();
     NOPtr.clear();
-    for (int32_t i = 0; i < degree; ++i) {
+    for (int32_t i = 0; i < adjSize; ++i) {
       neighborIDAdjacentIndexMap[adjacentList[i]] = i;
       NOPtr.insert(make_pair(neighbor_node_sc[i], adjacentList[i]));
     }
