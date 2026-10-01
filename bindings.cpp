@@ -1,5 +1,6 @@
 #include "MyLib/MyVector.h"
 #include "graph/Graph.h"
+#include "graph/GraphStore.h"
 #include "graph/Vertex.h"
 #include <optional>
 #include <pybind11/pybind11.h>
@@ -57,6 +58,26 @@ PYBIND11_MODULE(vdstar_core, m) {
 
              Returns: list[list[int]] of clusters, each cluster is a list of
              1-based vertex ids.
+             )doc");
+
+  py::class_<GraphStore>(m, "GraphStore", R"doc(
+        Read and write VD-STAR graph states.
+
+        write(graph, path) saves a graph; read(path) returns a new Graph.
+        )doc")
+      .def_static("write", &GraphStore::write, py::arg("graph"),
+                  py::arg("path"),
+                  R"doc(Save graph to path.
+
+                     Raises RuntimeError if the path cannot be written.
+                     )doc")
+      .def_static(
+          "read",
+          [](const std::string &path) { return GraphStore::read(path); },
+          py::arg("path"),
+          R"doc(Read a graph state previously written. Returns a new Graph.
+
+             Raises RuntimeError if path is not a VD-STAR state file.
              )doc");
 
   m.def(

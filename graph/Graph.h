@@ -6,10 +6,15 @@
 #include "Jaccard.h"
 #include "Vertex.h"
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <random>
+#include <string>
 #include <vector>
+
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/unique_ptr.hpp>
 
 using namespace std;
 
@@ -18,6 +23,9 @@ using namespace std;
 #define FAILURE_PROB 0.001
 
 class Graph {
+  friend class boost::serialization::access;
+  friend class GraphStore;
+
 protected:
   // The parameters of StrClu clustering.
   double rho;
@@ -31,6 +39,11 @@ protected:
 
   // The list of all the vertices.
   MyVector<std::unique_ptr<dynscan::Vertex>> vList;
+
+  Graph(double _rho);
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
 
 public:
   /*
@@ -61,6 +74,33 @@ public:
   bool removeVertex(int _id);
 
   vector<vector<int>> query(double eps, int mu);
+
+  /**
+   * The approximation parameter this graph was constructed with.
+   */
+  double getRho() const { return rho; }
+
+  /**
+   * The permutation number derived from rho and the vertex count.
+   */
+  int getPermutationNum() const { return permutationNum; }
+
+  /**
+   * The number of vertex slots, including slots left behind by removed
+   * vertices. Ids are 1-based, so slot i holds vertex id i + 1.
+   */
+  uint64_t getVertexNum() const { return vList.size(); }
+
+  /**
+   * Whether vertex _id is present. False for an id outside [1, getVertexNum()]
+   * and for a removed vertex, whose slot is retained but emptied.
+   */
+  bool isLiveVertex(int _id) const { return getVertex(_id) != nullptr; }
+
+  /**
+   * The vertex with the given id, or nullptr if it is not live.
+   */
+  const dynscan::Vertex *getVertexPtr(int _id) const { return getVertex(_id); }
 
 protected:
   inline dynscan::Vertex *getVertex(int _id) const {
@@ -136,5 +176,32 @@ protected:
     permutationNum = mid;
   }
 };
+
+template <class Archive>
+void Graph::serialize(Archive &ar, const unsigned int) {
+  uint64_t vertex_num = vList.size();
+
+  ar & rho;
+  ar & permutationNum;
+  ar & vertex_num;
+
+  if (Archive::is_saving::value) {
+    for (uint64_t i = 0; i < vertex_num; ++i) {
+      ar &vList[i];
+    }
+  } else {
+    if (vList.size() != 0) {
+      throw std::runtime_error(
+          "Graph::serialize: load target is not empty; use GraphStore::read");
+    }
+    myJaccard = std::make_unique<Jaccard>((long double)vertex_num, omega * rho);
+    vList.reserve(2 * vertex_num);
+    for (uint64_t i = 0; i < vertex_num; ++i) {
+      std::unique_ptr<dynscan::Vertex> v;
+      ar & v;
+      vList.push_back(std::move(v));
+    }
+  }
+}
 
 #endif // DYNSCAN_GRAPH_H

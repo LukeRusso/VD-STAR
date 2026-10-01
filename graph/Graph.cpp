@@ -2,6 +2,7 @@
 #include "../MyLib/MyTimer.h"
 #include <algorithm>
 #include <queue>
+#include <stdexcept>
 #include <utility>
 
 Graph::Graph(int _vertex_num, double _rho,
@@ -22,6 +23,8 @@ Graph::Graph(int _vertex_num, double _rho,
                                        *seed)
            : std::make_unique<Jaccard>((long double)_vertex_num, omega * rho);
 }
+
+Graph::Graph(double _rho) : rho(_rho), permutationNum(0), myJaccard(nullptr) {}
 
 Graph::~Graph() {}
 

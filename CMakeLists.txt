@@ -5,12 +5,13 @@ find_package(pybind11 CONFIG REQUIRED)
 set(CMAKE_CXX_STANDARD 17)
 set(BOOST_INCLUDE_LIBRARIES serialization)
 add_subdirectory(boost_1_92_0 boost_build EXCLUDE_FROM_ALL)
+set_target_properties(boost_serialization PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set(CATCH_INSTALL_DOCS OFF CACHE BOOL "" FORCE)
 set(CATCH_INSTALL_EXTRAS OFF CACHE BOOL "" FORCE)
 add_subdirectory(catch2 catch2_build EXCLUDE_FROM_ALL)
 
 set(VDSTAR_ENGINE_SOURCES
-    graph/Graph.cpp graph/Vertex.cpp
+    graph/Graph.cpp graph/GraphStore.cpp graph/Vertex.cpp
     dt/DTBucket.cpp dt/DTInstance.cpp dt/DTManager.cpp
     MyLib/MyTimer.cpp)
 
