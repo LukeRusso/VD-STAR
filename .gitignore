@@ -9,3 +9,8 @@
 __pycache__/
 *.py[cod]
 
+# uv / pytest
+/.venv/
+/.pytest_cache/
+
+

@@ -9,7 +9,16 @@ description = "VD-STAR dynamic structural clustering"
 requires-python = ">=3.10"
 readme = "README.md"
 
+[dependency-groups]
+test = ["pytest>=8"]
+dev = [{ include-group = "test" }]
+
 [tool.scikit-build]
 minimum-version = "0.10"
 wheel.packages = ["src/vdstar"]
 cmake.version = ">=3.25"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests/python"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
