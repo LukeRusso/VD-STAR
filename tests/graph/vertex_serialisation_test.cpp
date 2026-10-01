@@ -1,5 +1,4 @@
 #include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
@@ -11,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "graph/Vertex.h"
+#include "tests/support/test_helpers.h"
 
 void buildVertex(dynscan::Vertex &v, int id, int updateCnt, bool large,
                  const std::vector<int> &nbrs, const std::vector<float> &scores,
@@ -27,23 +27,8 @@ void buildVertex(dynscan::Vertex &v, int id, int updateCnt, bool large,
   }
 }
 
-void compare(const dynscan::Vertex &a, const dynscan::Vertex &b) {
-  CHECK(a.id == b.id);
-  CHECK(a.getCnt() == b.getCnt());
-  CHECK(a.isLarge() == b.isLarge());
-  CHECK(a.getDegree() == b.getDegree());
-  for (int i = 0; i < a.getDegree(); ++i) {
-    CHECK(a.getNeighborID(i) == b.getNeighborID(i));
-    CHECK(b.getAdjacentIndex(b.getNeighborID(i)) == i);
-    if (!a.isLarge()) {
-      CHECK(a.getIntersectionCnt(i) == b.getIntersectionCnt(i));
-    }
-  }
-  CHECK(a.NOPtr == b.NOPtr);
-}
-
 std::size_t roundTrip(const dynscan::Vertex &a, dynscan::Vertex &b,
-                      const char *path) {
+                      const std::string &path) {
   {
     std::ofstream os(path, std::ios::binary);
     boost::archive::binary_oarchive ar(os);
@@ -58,67 +43,72 @@ std::size_t roundTrip(const dynscan::Vertex &a, dynscan::Vertex &b,
   return static_cast<std::size_t>(inputStream.tellg());
 }
 
-std::string readFile(const char *path) {
-  std::ifstream f(path, std::ios::binary);
-  return std::string((std::istreambuf_iterator<char>(f)),
-                     std::istreambuf_iterator<char>());
-}
-
-const int smallId = 42;
-const int smallUpdates = 7;
-const std::vector<int> smallNbrs{5, 3, 9, 1};
-const std::vector<float> smallScores{0.5f, 0.25f, 0.75f, 0.1f};
-const std::vector<int> smallCounts{2, 0, 5, 1};
-
-const int largeId = 7;
-const int largeUpdates = 3;
-const int largeDegree = 3;
-const std::vector<int> largeNbrs{11, 12, 13};
-const std::vector<float> largeScores{0.9f, 0.8f, 0.7f};
-
 const int scratchId = 0;
 
 TEST_CASE("small vertex round-trips") {
-  dynscan::Vertex a(smallId);
-  buildVertex(a, smallId, smallUpdates, false, smallNbrs, smallScores,
-              smallCounts);
+  const int id = 42;
+  const int updates = 7;
+  const std::string path = testTmpPath("vtx_small");
+  const std::vector<int> nbrs{5, 3, 9, 1};
+  const std::vector<float> scores{0.5f, 0.25f, 0.75f, 0.1f};
+  const std::vector<int> counts{2, 0, 5, 1};
+
+  dynscan::Vertex a(id);
+  buildVertex(a, id, updates, false, nbrs, scores, counts);
   dynscan::Vertex b(scratchId);
-  const std::size_t n = roundTrip(a, b, "/tmp/vtx_boost_small.bin");
+  const std::size_t n = roundTrip(a, b, path);
   CAPTURE(n);
   CHECK(n > 0);
-  compare(a, b);
-  CHECK(b.getDegree() == smallNbrs.size());
-  CHECK(b.getNeighborID(0) == smallNbrs[0]);
-  CHECK(b.getNeighborID(3) == smallNbrs[3]);
-  CHECK(b.getIntersectionCnt(0) == smallCounts[0]);
-  CHECK(b.getIntersectionCnt(2) == smallCounts[2]);
+  compareVertex(a, b);
+  CHECK(b.getDegree() == nbrs.size());
+  CHECK(b.getNeighborID(0) == nbrs[0]);
+  CHECK(b.getNeighborID(3) == nbrs[3]);
+  CHECK(b.getIntersectionCnt(0) == counts[0]);
+  CHECK(b.getIntersectionCnt(2) == counts[2]);
 }
 
 TEST_CASE("large vertex round-trips (intersectionCnt stays empty)") {
-  dynscan::Vertex a(largeId);
-  buildVertex(a, largeId, largeUpdates, true, largeNbrs, largeScores,
-              {0, 0, 0});
+  const int id = 7;
+  const int updates = 3;
+  const std::vector<int> nbrs{11, 12, 13};
+  const std::vector<float> scores{0.9f, 0.8f, 0.7f};
+  const std::vector<int> counts{0, 0, 0};
+  const std::string path = testTmpPath("vtx_large");
+
+  dynscan::Vertex a(id);
+  buildVertex(a, id, updates, true, nbrs, scores, counts);
   dynscan::Vertex b(scratchId);
-  roundTrip(a, b, "/tmp/vtx_boost_large.bin");
-  compare(a, b);
+  roundTrip(a, b, path);
+  compareVertex(a, b);
   CHECK(b.isLarge());
-  CHECK(b.getDegree() == largeDegree);
-  CHECK(b.getNeighborID(2) == largeNbrs[2]);
+  CHECK(b.getDegree() == nbrs.size());
+  CHECK(b.getNeighborID(2) == nbrs[2]);
 }
 
 TEST_CASE("duplicate sigma round-trips correctly (NOPtr/multimap ties)") {
-  dynscan::Vertex a(3);
-  buildVertex(a, 3, 0, false, {20, 30, 40}, {0.5f, 0.5f, 0.5f}, {1, 2, 3});
+  const int id = 3;
+  const std::vector<int> nbrs{20, 30, 40};
+  const std::vector<float> scores{0.5f, 0.5f, 0.5f}; // all-equal sigma -> ties
+  const std::vector<int> counts{1, 2, 3};
+  const std::string path = testTmpPath("vtx_ties");
+
+  dynscan::Vertex a(id);
+  buildVertex(a, id, 0, false, nbrs, scores, counts);
   dynscan::Vertex b(scratchId);
-  roundTrip(a, b, "/tmp/vtx_boost_ties.bin");
-  compare(a, b);
+  roundTrip(a, b, path);
+  compareVertex(a, b);
 }
 
 TEST_CASE("save -> load -> save is byte-identical") {
-  const char *firstPath = "/tmp/vtx_b1.bin";
-  const char *secondPath = "/tmp/vtx_b2.bin";
-  dynscan::Vertex a(8);
-  buildVertex(a, 8, 4, false, {1, 2, 3}, {0.25f, 0.5f, 0.75f}, {7, 8, 9});
+  const int id = 8;
+  const std::vector<int> nbrs{1, 2, 3};
+  const std::vector<float> scores{0.25f, 0.5f, 0.75f};
+  const std::vector<int> counts{7, 8, 9};
+  const std::string firstPath = testTmpPath("vtx_b1");
+  const std::string secondPath = testTmpPath("vtx_b2");
+
+  dynscan::Vertex a(id);
+  buildVertex(a, id, 4, false, nbrs, scores, counts);
   dynscan::Vertex b(scratchId);
   roundTrip(a, b, firstPath);
   {

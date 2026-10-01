@@ -1,6 +1,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -9,11 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "MyLib/MyVector.h"
-
-const int thingIds[] = {1, 3, 5};
-const unsigned thingCount = 5;
-const unsigned intCount = 1000;
-const int intStride = 3;
+#include "tests/support/test_helpers.h"
 
 struct Thing {
   int v = 0;
@@ -25,7 +22,10 @@ struct Thing {
 };
 
 TEST_CASE("MyVector<unique_ptr<T>> round-trips, including nulls") {
-  const char *path = "/tmp/mv_ptr.bin";
+  const std::string path = testTmpPath("mv_ptr");
+  const std::vector<int> thingIds{1, 3, 5};
+  const unsigned thingCount = 5;
+
   MyVector<std::unique_ptr<Thing>> a;
   a.push_back(std::make_unique<Thing>(thingIds[0]));
   a.push_back(nullptr);
@@ -57,9 +57,10 @@ TEST_CASE("MyVector<unique_ptr<T>> round-trips, including nulls") {
 }
 
 TEST_CASE("non-trivial elements keep their own storage") {
-  const char *path = "/tmp/mv_str.bin";
+  const std::string path = testTmpPath("mv_str");
   const std::string shortStr = "hello";
   const std::string longStr = "world, this is longer than the SSO buffer";
+  const std::size_t elemCount = 3;
 
   MyVector<std::string> a;
   a.push_back(shortStr);
@@ -78,7 +79,7 @@ TEST_CASE("non-trivial elements keep their own storage") {
     ar >> b;
   }
 
-  REQUIRE(b.size() == 3);
+  REQUIRE(b.size() == elemCount);
   CHECK(b[0] == shortStr);
   CHECK(b[1] == longStr);
   CHECK(b[2].empty());
@@ -86,7 +87,9 @@ TEST_CASE("non-trivial elements keep their own storage") {
 }
 
 TEST_CASE("trivial elements still round-trip") {
-  const char *path = "/tmp/mv_int.bin";
+  const std::string path = testTmpPath("mv_int");
+  const unsigned intCount = 1000;
+  const int intStride = 3;
 
   SECTION("non-empty") {
     MyVector<int> a;
