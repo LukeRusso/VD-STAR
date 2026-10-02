@@ -6,17 +6,10 @@ void DTManager::removeInstance(DTInstance *instance) {
   if (_indexToDel == length - 1) {
     dtInstanceList.pop_back();
   } else {
-    DTInstance *temp = dtInstanceList[length - 1];
-    dtInstanceList[length - 1] = dtInstanceList[_indexToDel];
-    dtInstanceList[_indexToDel] = temp;
-    temp->set_dtIndex(_indexToDel);
+    dtInstanceList[_indexToDel].release();
+    dtInstanceList[_indexToDel] = std::move(dtInstanceList[length - 1]);
+    dtInstanceList[_indexToDel]->set_dtIndex(_indexToDel);
     dtInstanceList.pop_back();
   }
   delete instance;
-}
-
-DTManager::~DTManager() {
-  for (int i = 0; i < dtInstanceList.size(); ++i) {
-    delete dtInstanceList[i];
-  }
 }

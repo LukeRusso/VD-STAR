@@ -17,7 +17,7 @@ void DTBucket::DeleteElement(int bucketIndex, int elementIndex) {
   }
 }
 
-int DTBucket::listSize() { return buckList.size(); }
+int DTBucket::listSize() const { return buckList.size(); }
 
 void DTBucket::extendListSize(int index) {
   while (buckList.size() < index) {
@@ -45,7 +45,7 @@ bool DTBucket::CheckEmptyByIndex(int index) {
   return false;
 }
 
-int DTBucket::sizeByIndex(int i) {
+int DTBucket::sizeByIndex(int i) const {
   if (buckList.size() <= i) {
     return 0;
   }

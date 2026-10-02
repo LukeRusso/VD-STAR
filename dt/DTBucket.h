@@ -4,6 +4,8 @@
 #include "../MyLib/MyVector.h"
 #include <algorithm>
 
+#include <boost/serialization/access.hpp>
+
 using namespace std;
 
 static int pow_2[30] = {1,        2,        4,         8,         16,
@@ -23,6 +25,8 @@ class DTBucketElement {
 
   friend class DTInstance;
 
+  friend class boost::serialization::access;
+
 protected:
   // records the last count
   int cnt;
@@ -34,6 +38,10 @@ protected:
   unsigned int element_index;
 
   DTInstance *dtInstance;
+
+private:
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
 
 public:
   DTBucketElement() {
@@ -51,8 +59,18 @@ public:
 
   inline void update_cnt(int cnt) { this->cnt = cnt; }
 
+  inline void set_dtInstance(DTInstance *instance) { dtInstance = instance; }
+
+  inline void set_neighbor_id(int id) { neighborID = id; }
+
   inline const unsigned int &get_element_index() const { return element_index; }
 };
+
+template <class Archive>
+void DTBucketElement::serialize(Archive &ar, const unsigned int) {
+  ar & cnt;
+  ar & neighborID;
+}
 
 /*
  *  The class of buckets for DT instances.
@@ -66,9 +84,9 @@ public:
   // constructor
   DTBucket() {}
 
-  int listSize();
+  int listSize() const;
 
-  int sizeByIndex(int i);
+  int sizeByIndex(int i) const;
 
   void extendListSize(int size);
 

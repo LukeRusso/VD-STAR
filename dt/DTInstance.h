@@ -5,10 +5,14 @@
 #include <cstdio>
 #include <math.h>
 
+#include <boost/serialization/access.hpp>
+
 /*
  *  The class of DT instance for an edge.
  */
 class DTInstance {
+  friend class boost::serialization::access;
+
 protected:
   // one DT instance will be related to two different heaps, for example DT(v1,
   // v2) will be both in heap related to v1 and heap related to v2
@@ -117,6 +121,8 @@ public:
     element2.dtInstance = this;
   }
 
+  DTInstance() = default;
+
   inline void reset_status(const double &_rho,
                            const int &_union_size_lower_bound,
                            const int &_uptCnt1, const int &_uptCnt2) {
@@ -125,6 +131,30 @@ public:
     set_CntSum(_uptCnt1 + _uptCnt2);
     update_tau_and_slack(_uptCnt1, _uptCnt2);
   }
+
+private:
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
 };
+
+template <class Archive>
+void DTInstance::serialize(Archive &ar, const unsigned int) {
+  ar & dtIndex;
+  ar & tau;
+  ar & init_tau;
+  ar & lambda;
+  ar & _exp;
+  ar & initialCntSum;
+  ar & roundEndCnt;
+  ar & msgCnt;
+
+  ar & element1;
+  ar & element2;
+
+  if (Archive::is_loading::value) {
+    element1.dtInstance = this;
+    element2.dtInstance = this;
+  }
+}
 
 #endif // DYNSCAN_DTINSTANCE_H
