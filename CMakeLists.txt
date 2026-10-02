@@ -12,7 +12,7 @@ add_subdirectory(catch2 catch2_build EXCLUDE_FROM_ALL)
 
 set(VDSTAR_ENGINE_SOURCES
     graph/Graph.cpp graph/GraphStore.cpp graph/Vertex.cpp
-    dt/DTBucket.cpp dt/DTInstance.cpp dt/DTManager.cpp
+    dt/DTBucket.cpp dt/DTManager.cpp
     MyLib/MyTimer.cpp)
 
 add_library(vdstar_engine STATIC ${VDSTAR_ENGINE_SOURCES})
