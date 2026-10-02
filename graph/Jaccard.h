@@ -2,9 +2,14 @@
 #define DYNSCAN_JACCARD_H
 
 #include "Vertex.h"
+#include <boost/serialization/access.hpp>
 #include <random>
+#include <sstream>
+#include <string>
 
 class Jaccard {
+  friend class boost::serialization::access;
+
 private:
   std::mt19937_64 gen;
   std::uniform_int_distribution<long long> dis;
@@ -21,7 +26,7 @@ private:
 
   long long number_invoke;
   long long batch_num;
-  const long long batch_size;
+  long long batch_size;
 
   inline bool is_a_common_vertex(const dynscan::Vertex &_v,
                                  const dynscan::Vertex &_u) {
@@ -98,6 +103,8 @@ public:
     numSamples = 2.0 / rho / rho * log(one_over_failure_prob);
   }
 
+  Jaccard() = default;
+
   inline void adjust_failure_prob_current_invoke() {
     ++number_invoke;
     batch_num = number_invoke / batch_size + 1;
@@ -149,6 +156,40 @@ public:
     mean = mean / (2 - mean);
     return mean;
   }
+
+private:
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version);
 };
+
+template <class Archive>
+void Jaccard::serialize(Archive &ar, const unsigned int) {
+  ar & size_v;
+  ar & size_u;
+  ar & index;
+  ar & common;
+  ar & numSamples;
+  ar & mean;
+  ar & rho;
+  ar & one_over_failure_prob;
+  ar & one_over_failure_prob_current_invoke;
+  ar & number_invoke;
+  ar & batch_num;
+  ar & batch_size;
+
+  // std::mt19937_64 is not serialisable field-by-field. its textual stream
+  // operators round-trip the whole engine state exactly.
+  std::string engine_state;
+  if (Archive::is_saving::value) {
+    std::ostringstream stream;
+    stream << gen;
+    engine_state = stream.str();
+  }
+  ar & engine_state;
+  if (Archive::is_loading::value) {
+    std::istringstream stream(engine_state);
+    stream >> gen;
+  }
+}
 
 #endif // DYNSCAN_JACCARD_H
