@@ -94,7 +94,7 @@ public:
   }
 
   inline const DTBucketElement *
-  get_dt_bucket_element_by_neighbor_id(const int &_neighborID) {
+  get_dt_bucket_element_by_neighbor_id(const int &_neighborID) const {
     const auto &it = neighborID_DTBucketElement_Map.find(_neighborID);
     return it == neighborID_DTBucketElement_Map.end() ? nullptr : it->second;
   }
@@ -105,6 +105,10 @@ public:
     neighborID_DTBucketElement_Map[_neighborID] = dtBucketElement;
   }
 
+  /**
+   * Detach this vertex's DT bucket element for `_neighborID` from the bucket at
+   * the instance's current exp and from the neighbour map.
+   */
   inline void detachDTBucketElement(const int &_neighborID) {
     auto it = neighborID_DTBucketElement_Map.find(_neighborID);
     if (it == neighborID_DTBucketElement_Map.end()) {
@@ -117,6 +121,17 @@ public:
     }
     const int bucketIndex = element->get_dtInstance()->get_exp();
     dtBucketPtr.DeleteElement(bucketIndex, element->get_element_index());
+  }
+
+  /**
+   * Attach the token for `instance`'s edge to `neighbour` into this vertex's DT
+   * bucket and neighbour map.
+   */
+  inline void mountDTBucketElement(DTInstance *instance,
+                                   const dynscan::Vertex *neighbour) {
+    DTBucketElement *element = instance->get_element(neighbour->id);
+    addDTBucketElement(instance->get_exp(), element, getCnt());
+    set_dt_bucket_element_map_by_neighbor_id(neighbour->id, element);
   }
 
   /**
@@ -158,10 +173,11 @@ public:
   }
 
   /**
-   *
-   * @param the ID of vertex to delete from
+   * Remove the element at `elementIndex` from DT bucket `bucketIndex`.
+   * @param bucketIndex bucket to remove from
+   * @param elementIndex position of the element within that bucket
    */
-  inline void DeleteElement(int bucketIndex, int elementIndex) {
+  inline void removeDTBucketElement(int bucketIndex, int elementIndex) {
     dtBucketPtr.DeleteElement(bucketIndex, elementIndex);
   }
 
@@ -170,28 +186,37 @@ public:
   inline int getCnt() const { return updateCnt; }
 
   /**
-   * @param bucket index, element to insert
-   * @return return the new number elements in the bucket.
+   * Append `e` to the DT bucket at `i`, recording `updateCnt` as the bucket's
+   * count baseline.
+   * @param i bucket index
+   * @param e element to insert
+   * @param updateCnt count baseline to store
+   * @return the new number of elements in the bucket.
    */
-
   inline int addDTBucketElement(int i, DTBucketElement *e, int updateCnt) {
     return dtBucketPtr.InsertNewELement(i, e, updateCnt);
   }
 
-  inline bool CheckEmptyByIndex(int index) {
+  /** True if DT bucket `index` holds no live elements. */
+  inline bool dtBucketIsEmpty(int index) {
     return dtBucketPtr.CheckEmptyByIndex(index);
   }
 
-  inline int listSize() { return dtBucketPtr.listSize(); }
+  /** Number of buckets in this vertex's DT bucket list. */
+  inline int dtBucketNum() const { return dtBucketPtr.listSize(); }
 
-  inline int sizeByIndex(int i) { return dtBucketPtr.sizeByIndex(i); }
+  /** Number of live elements in DT bucket `i`. */
+  inline int dtBucketSize(int i) const { return dtBucketPtr.sizeByIndex(i); }
 
-  inline void updateBucketCount(int i, int updateCount) {
+  /** Set bucket `i`'s stored count to `updateCount`. */
+  inline void updateDTBucketCnt(int i, int updateCount) {
     dtBucketPtr.updateCnt(i, updateCount);
   }
 
-  inline int getBucketCount(int i) { return dtBucketPtr.getCnt(i); }
+  /** Bucket `i`'s stored count (the smallest last-count it holds). */
+  inline int getDTBucketCnt(int i) const { return dtBucketPtr.getCnt(i); }
 
+  /** Element at position `j` in DT bucket `i`. */
   inline DTBucketElement *getDTBucketElement(int i, int j) {
     return dtBucketPtr.getElement(i, j);
   }

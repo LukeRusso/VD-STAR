@@ -213,18 +213,12 @@ int Graph::insertBetweenSmallAndLarge(dynscan::Vertex *v1,
   int updateCnt1 = v1->getCnt();
   int updateCnt2 = v2->getCnt();
   int dtIndex = dtManager.get_size();
-  DTInstance *curInstance =
-      new DTInstance((1 - omega) * rho * rho, unionSize, updateCnt1, updateCnt2,
-                     v1->id, v2->id, dtIndex);
-  dtManager.insertInstance(curInstance);
-
-  int _exp = curInstance->get_exp();
-  v1->addDTBucketElement(_exp, curInstance->get_element1(), updateCnt1);
-  v2->addDTBucketElement(_exp, curInstance->get_element2(), updateCnt2);
-  v1->set_dt_bucket_element_map_by_neighbor_id(v2->id,
-                                               curInstance->get_element1());
-  v2->set_dt_bucket_element_map_by_neighbor_id(v1->id,
-                                               curInstance->get_element2());
+  auto curInstance = std::make_unique<DTInstance>(
+      (1 - omega) * rho * rho, unionSize, updateCnt1, updateCnt2, v1->id,
+      v2->id, dtIndex);
+  DTInstance *instancePtr = curInstance.get();
+  dtManager.insertInstance(std::move(curInstance));
+  mountDTInstance(instancePtr, v1, v2);
   return 0;
 }
 
@@ -268,19 +262,14 @@ int Graph::insertBetweenLarge(dynscan::Vertex *v1, dynscan::Vertex *v2) {
   int updateCnt2 = v2->getCnt();
 
   int dtIndex = dtManager.get_size();
-  DTInstance *curInstance =
-      new DTInstance((1 - omega) * rho * rho, maxDegree, updateCnt1, updateCnt2,
-                     v1->id, v2->id, dtIndex);
+  auto curInstance = std::make_unique<DTInstance>(
+      (1 - omega) * rho * rho, maxDegree, updateCnt1, updateCnt2, v1->id,
+      v2->id, dtIndex);
 
-  dtManager.insertInstance(curInstance);
+  DTInstance *instancePtr = curInstance.get();
+  dtManager.insertInstance(std::move(curInstance));
 
-  int _exp = curInstance->get_exp();
-  v1->addDTBucketElement(_exp, curInstance->get_element1(), updateCnt1);
-  v2->addDTBucketElement(_exp, curInstance->get_element2(), updateCnt2);
-  v1->set_dt_bucket_element_map_by_neighbor_id(v2->id,
-                                               curInstance->get_element1());
-  v2->set_dt_bucket_element_map_by_neighbor_id(v1->id,
-                                               curInstance->get_element2());
+  mountDTInstance(instancePtr, v1, v2);
 #ifdef _DEBUG_
   double end_time = getCurrentTime();
   time_GraphDynamic_insertBetweenLarge += (end_time - start_time);
@@ -300,21 +289,21 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
   curVertex->increaseUpdateCnt();
   int VID1 = curVertex->id;
   int updateCnt = curVertex->getCnt();
-  for (int i = 0; i < curVertex->listSize(); i++) {
+  for (int i = 0; i < curVertex->dtBucketNum(); i++) {
     MyVector<DTInstance *> newRounds;
-    if (curVertex->sizeByIndex(i) == 0) {
+    if (curVertex->dtBucketSize(i) == 0) {
       continue;
     } else {
       // the first element in the bucket should have the smallest last count
-      int c_B = curVertex->getBucketCount(i);
+      int c_B = curVertex->getDTBucketCnt(i);
       int lambda_B = pow_2[i];
       int comp = floor(updateCnt / lambda_B) - floor(c_B / lambda_B);
       if (comp == 0) {
         break;
       }
       if (comp >= 1) {
-        curVertex->updateBucketCount(i, updateCnt);
-        for (int j = 0; j < curVertex->sizeByIndex(i); j++) {
+        curVertex->updateDTBucketCnt(i, updateCnt);
+        for (int j = 0; j < curVertex->dtBucketSize(i); j++) {
           DTBucketElement *bucket_element = curVertex->getDTBucketElement(i, j);
           DTInstance *curInstance = bucket_element->get_dtInstance();
           bucket_element->update_cnt(updateCnt);
@@ -339,10 +328,10 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
       // update tau since it is a new round
       int bucket_index = curInstance->get_exp();
 
-      curVertex->DeleteElement(bucket_index,
-                               curInstance->get_element_index(neighborID));
-      neighborVertex->DeleteElement(bucket_index,
-                                    curInstance->get_element_index(VID1));
+      curVertex->removeDTBucketElement(
+          bucket_index, curInstance->get_element_index(neighborID));
+      neighborVertex->removeDTBucketElement(
+          bucket_index, curInstance->get_element_index(VID1));
 
       curInstance->update_tau_and_slack(updateCnt, neighborUpdateCnt);
       if (!curInstance->is_mature()) {
@@ -381,6 +370,26 @@ void Graph::checkVertexDTBucket(dynscan::Vertex *curVertex) {
   }
 }
 
+void Graph::mountDTInstance(DTInstance *instance, dynscan::Vertex *v1,
+                            dynscan::Vertex *v2) {
+  v1->mountDTBucketElement(instance, v2);
+  v2->mountDTBucketElement(instance, v1);
+}
+
+void Graph::rebuildDTBuckets() {
+  const int count = dtManager.get_size();
+  for (int i = 0; i < count; ++i) {
+    DTInstance *instance = dtManager.getInstance(i);
+    auto *v1 = getVertex(instance->get_element2()->get_neighbor_id());
+    auto *v2 = getVertex(instance->get_element1()->get_neighbor_id());
+    if (v1 == nullptr || v2 == nullptr) {
+      throw std::runtime_error(
+          "Graph::rebuildDTBuckets: DT instance references a missing vertex");
+    }
+    mountDTInstance(instance, v1, v2);
+  }
+}
+
 int Graph::makeLarge(dynscan::Vertex *v) {
   double start = getCurrentTime();
 
@@ -401,18 +410,12 @@ int Graph::makeLarge(dynscan::Vertex *v) {
 
     int dtIndex = dtManager.get_size();
 
-    DTInstance *newInstance =
-        new DTInstance((1 - omega) * rho * rho, unionSize, vUpdateCnt,
-                       neighborUpdateCnt, v->id, neighbor_v->id, dtIndex);
-    dtManager.insertInstance(newInstance);
-    int _exp = newInstance->get_exp();
-    v->addDTBucketElement(_exp, newInstance->get_element1(), vUpdateCnt);
-    neighbor_v->addDTBucketElement(_exp, newInstance->get_element2(),
-                                   neighborUpdateCnt);
-    v->set_dt_bucket_element_map_by_neighbor_id(neighborID,
-                                                newInstance->get_element1());
-    neighbor_v->set_dt_bucket_element_map_by_neighbor_id(
-        vID, newInstance->get_element2());
+    auto newInstance = std::make_unique<DTInstance>(
+        (1 - omega) * rho * rho, unionSize, vUpdateCnt, neighborUpdateCnt,
+        v->id, neighbor_v->id, dtIndex);
+    DTInstance *instancePtr = newInstance.get();
+    dtManager.insertInstance(std::move(newInstance));
+    mountDTInstance(instancePtr, v, neighbor_v);
   }
   v->set_large();
 

@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "graph/Graph.h"
 #include "graph/Vertex.h"
 
 // Read a whole file as a byte string.
@@ -36,6 +37,30 @@ inline void compareVertex(const dynscan::Vertex &a, const dynscan::Vertex &b) {
     }
   }
   CHECK(a.NOPtr == b.NOPtr);
+}
+
+// Each vertex v links forward to v+1 .. v+span, where they exist
+inline void buildSpanGraph(Graph &g, int n, int span) {
+  for (int v = 1; v <= n; ++v) {
+    for (int d = 1; d <= span; ++d) {
+      const int u = v + d;
+      if (u <= n) {
+        g.insertEdge(v, u);
+      }
+    }
+  }
+}
+
+// Check that DT has triggered and some vertices are large
+inline void requireDTRegime(const Graph &g, int n) {
+  REQUIRE(g.getDTInstanceNum() > 0);
+  bool anyLarge = false;
+  for (int id = 1; id <= n; ++id) {
+    if (g.getVertexPtr(id)->isLarge()) {
+      anyLarge = true;
+    }
+  }
+  REQUIRE(anyLarge);
 }
 
 #endif // DYNSCAN_TEST_HELPERS_H

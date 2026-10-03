@@ -92,6 +92,12 @@ public:
   uint64_t getVertexNum() const { return vList.size(); }
 
   /**
+   * The number of live DT instances, i.e. tracked edges between large
+   * vertices.
+   */
+  int getDTInstanceNum() const { return dtManager.get_size(); }
+
+  /**
    * Whether vertex _id is present. False for an id outside [1, getVertexNum()]
    * and for a removed vertex, whose slot is retained but emptied.
    */
@@ -158,6 +164,18 @@ protected:
 
   void checkVertexDTBucket(dynscan::Vertex *curVertex);
 
+  /**
+   * Re-attach every restored DT instance to its vertices buckets and
+   * neighbour maps.
+   */
+  void rebuildDTBuckets();
+
+  /**
+   * Wire `instance` into both vertices DT buckets and neighbour maps.
+   */
+  void mountDTInstance(DTInstance *instance, dynscan::Vertex *v1,
+                       dynscan::Vertex *v2);
+
   void computePermutationNumber(double rho) {
     int vertex_num = vList.size();
     int max = vertex_num;
@@ -184,23 +202,26 @@ void Graph::serialize(Archive &ar, const unsigned int) {
   ar & rho;
   ar & permutationNum;
   ar & vertex_num;
+  ar & dtManager;
 
   if (Archive::is_saving::value) {
-    for (uint64_t i = 0; i < vertex_num; ++i) {
-      ar &vList[i];
+    if (myJaccard == nullptr) {
+      throw std::runtime_error("Graph::serialize: sampler is missing");
     }
+    ar &*myJaccard;
+    ar & vList;
   } else {
     if (vList.size() != 0) {
       throw std::runtime_error(
           "Graph::serialize: load target is not empty; use GraphStore::read");
     }
-    myJaccard = std::make_unique<Jaccard>((long double)vertex_num, omega * rho);
-    vList.reserve(2 * vertex_num);
-    for (uint64_t i = 0; i < vertex_num; ++i) {
-      std::unique_ptr<dynscan::Vertex> v;
-      ar & v;
-      vList.push_back(std::move(v));
+    {
+      myJaccard = std::make_unique<Jaccard>();
+      ar &*myJaccard;
     }
+    vList.reserve(2 * vertex_num);
+    ar & vList;
+    rebuildDTBuckets();
   }
 }
 

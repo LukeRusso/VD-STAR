@@ -23,17 +23,6 @@ const double testRho = 0.01;
 const std::string notAStateFileMsg = "is not a VD-STAR state file";
 const std::string cannotOpenMsg = "cannot open";
 
-void buildChain(Graph &g, int n, int maxSpan) {
-  for (int v = 1; v <= n; ++v) {
-    for (int span = 1; span <= maxSpan; ++span) {
-      int u = v + span;
-      if (u <= n) {
-        g.insertEdge(v, u);
-      }
-    }
-  }
-}
-
 void writeRaw(const std::string &path, const std::string &contents) {
   std::ofstream f(path, std::ios::binary | std::ios::trunc);
   f << contents;
@@ -46,7 +35,7 @@ TEST_CASE("graph: save -> load -> save is byte-identical") {
   const std::string reloaded = testTmpPath("t1_b");
 
   Graph g(vertexNum, testRho);
-  buildChain(g, vertexNum, maxSpan);
+  buildSpanGraph(g, vertexNum, maxSpan);
 
   GraphStore::write(g, state);
   Graph h = GraphStore::read(state);
@@ -79,7 +68,7 @@ TEST_CASE("graph: every vertex survives the round trip field-by-field") {
   const std::string state = testTmpPath("t3");
 
   Graph g(vertexNum, testRho);
-  buildChain(g, vertexNum, maxSpan);
+  buildSpanGraph(g, vertexNum, maxSpan);
   GraphStore::write(g, state);
 
   Graph h = GraphStore::read(state);
@@ -99,7 +88,7 @@ TEST_CASE("graph: removed vertices survive the round trip") {
   const std::string state = testTmpPath("t5");
 
   Graph g(vertexNum, testRho);
-  buildChain(g, vertexNum, maxSpan);
+  buildSpanGraph(g, vertexNum, maxSpan);
 
   REQUIRE(g.removeVertex(removedA));
   REQUIRE(g.removeVertex(removedB));
@@ -161,7 +150,7 @@ TEST_CASE("graph: a truncated state file is rejected") {
   const std::string truncated = testTmpPath("t10_trunc");
 
   Graph g(vertexNum, testRho);
-  buildChain(g, vertexNum, maxSpan);
+  buildSpanGraph(g, vertexNum, maxSpan);
   GraphStore::write(g, state);
 
   // header is valid but the body is cut short, so the signature check in
@@ -193,7 +182,7 @@ TEST_CASE("graph: loading into a non-empty graph is rejected") {
   const std::string state = testTmpPath("t13");
 
   Graph g(vertexNum, testRho);
-  buildChain(g, vertexNum, maxSpan);
+  buildSpanGraph(g, vertexNum, maxSpan);
   GraphStore::write(g, state);
 
   Graph populated(vertexNum, testRho);
@@ -201,4 +190,104 @@ TEST_CASE("graph: loading into a non-empty graph is rejected") {
   REQUIRE(is);
   boost::archive::binary_iarchive ar(is);
   CHECK_THROWS_AS(ar >> populated, std::runtime_error);
+}
+
+// The DT regime needs a denser graph than the tests above: n=10, span=5 pushes
+// endpoints past the large vertex threshold so DT instances are created
+static const int dtVertexNum = 10;
+static const int dtSpan = 5;
+
+TEST_CASE("graph: a DT-regime graph save -> load -> save is byte-identical") {
+  const std::string first = testTmpPath("dt1");
+  const std::string reloaded = testTmpPath("dt1_b");
+
+  Graph g(dtVertexNum, testRho);
+  buildSpanGraph(g, dtVertexNum, dtSpan);
+  requireDTRegime(g, dtVertexNum);
+
+  GraphStore::write(g, first);
+  Graph h = GraphStore::read(first);
+  CHECK(h.getDTInstanceNum() == g.getDTInstanceNum());
+  GraphStore::write(h, reloaded);
+
+  CHECK(readFile(first).size() > 0);
+  CHECK(readFile(first) == readFile(reloaded));
+}
+
+TEST_CASE("graph: DT buckets and neighbour maps are rebuilt on load") {
+  const std::string state = testTmpPath("dt2");
+
+  Graph g(dtVertexNum, testRho);
+  buildSpanGraph(g, dtVertexNum, dtSpan);
+  requireDTRegime(g, dtVertexNum);
+  GraphStore::write(g, state);
+
+  Graph h = GraphStore::read(state);
+  REQUIRE(h.getDTInstanceNum() == g.getDTInstanceNum());
+
+  for (int id = 1; id <= dtVertexNum; ++id) {
+    const auto *a = g.getVertexPtr(id);
+    const auto *b = h.getVertexPtr(id);
+    CAPTURE(id);
+
+    CHECK(a->isLarge() == b->isLarge());
+    CHECK(a->getCnt() == b->getCnt());
+    REQUIRE(a->getDegree() == b->getDegree());
+    REQUIRE(a->dtBucketNum() == b->dtBucketNum());
+
+    for (int i = 0; i < a->dtBucketNum(); ++i) {
+      CHECK(a->dtBucketSize(i) == b->dtBucketSize(i));
+      CHECK(a->getDTBucketCnt(i) == b->getDTBucketCnt(i));
+    }
+
+    // Every live DT edge can still be found through the neighbour map, on
+    // both endpoints, and the two finds name the same instance.
+    for (int i = 0; i < a->getDegree(); ++i) {
+      const int neighborID = a->getNeighborID(i);
+      const auto *ea = a->get_dt_bucket_element_by_neighbor_id(neighborID);
+      const auto *eb = b->get_dt_bucket_element_by_neighbor_id(neighborID);
+      REQUIRE((ea != nullptr) == (eb != nullptr));
+      if (ea != nullptr && eb != nullptr) {
+        CHECK(ea->get_dtInstance()->get_dtIndex() ==
+              eb->get_dtInstance()->get_dtIndex());
+      }
+    }
+  }
+}
+
+TEST_CASE("graph: a reloaded DT-regime graph accepts the same mutations") {
+  const std::string state = testTmpPath("dt3");
+
+  Graph g(dtVertexNum, testRho);
+  buildSpanGraph(g, dtVertexNum, dtSpan);
+  requireDTRegime(g, dtVertexNum);
+  GraphStore::write(g, state);
+  Graph h = GraphStore::read(state);
+
+  // Drive both graphs through the same edits. a rebuilt graph whose bucket or
+  // neighbour-map indices were wrong would diverge here
+  auto mutate = [](Graph &x) {
+    x.insertEdge(1, 9);
+    x.insertEdge(2, 10);
+    x.removeEdge(3, 8);
+    x.removeEdge(4, 9);
+    x.insertEdge(5, 10);
+    x.removeEdge(1, 6);
+  };
+  mutate(g);
+  mutate(h);
+
+  CHECK(h.getDTInstanceNum() == g.getDTInstanceNum());
+  for (int id = 1; id <= dtVertexNum; ++id) {
+    const auto *a = g.getVertexPtr(id);
+    const auto *b = h.getVertexPtr(id);
+    CAPTURE(id);
+    CHECK(a->getCnt() == b->getCnt());
+    CHECK(a->getDegree() == b->getDegree());
+    REQUIRE(a->dtBucketNum() == b->dtBucketNum());
+    for (int i = 0; i < a->dtBucketNum(); ++i) {
+      CHECK(a->dtBucketSize(i) == b->dtBucketSize(i));
+      CHECK(a->getDTBucketCnt(i) == b->getDTBucketCnt(i));
+    }
+  }
 }
