@@ -5,6 +5,7 @@
 #include <optional>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <sstream>
 
 namespace py = pybind11;
 
@@ -65,19 +66,43 @@ PYBIND11_MODULE(vdstar_core, m) {
 
         write(graph, path) saves a graph; read(path) returns a new Graph.
         )doc")
-      .def_static("write", &GraphStore::write, py::arg("graph"),
-                  py::arg("path"),
+      .def_static("write",
+                  py::overload_cast<const Graph &, const std::string &>(
+                      &GraphStore::write),
+                  py::arg("graph"), py::arg("path"),
                   R"doc(Save graph to path.
 
                      Raises RuntimeError if the path cannot be written.
                      )doc")
       .def_static(
-          "read",
-          [](const std::string &path) { return GraphStore::read(path); },
+          "read", py::overload_cast<const std::string &>(&GraphStore::read),
           py::arg("path"),
           R"doc(Read a graph state previously written. Returns a new Graph.
 
              Raises RuntimeError if path is not a VD-STAR state file.
+             )doc")
+      .def_static(
+          "write_bytes",
+          [](const Graph &g) {
+            std::ostringstream os(std::ios::binary);
+            GraphStore::write(os, g);
+            return py::bytes(os.str());
+          },
+          py::arg("graph"),
+          R"doc(Serialise graph to bytes without touching the filesystem.
+
+             Returns: bytes holding the same archive format write() produces.
+             )doc")
+      .def_static(
+          "read_bytes",
+          [](const py::bytes &data) {
+            std::istringstream is(std::string(data), std::ios::binary);
+            return GraphStore::read(is);
+          },
+          py::arg("data"),
+          R"doc(Read a graph state from bytes previously produced by write_bytes.
+
+             Raises RuntimeError if data is not a VD-STAR state archive.
              )doc");
 
   m.def(
