@@ -44,6 +44,11 @@ PYBIND11_MODULE(vdstar_core, m) {
           "add_vertex", [](Graph &g) { return g.addVertex()->id; },
           R"doc(Add a vertex. Returns the id vdstar assigned.
              )doc")
+      .def("get_vertex_num", &Graph::getVertexNum,
+           R"doc(The number of vertex slots, including slots left by removed
+             vertices. Ids are 1-based, so the next id vdstar will assign is
+             one past this count.
+             )doc")
       .def(
           "insert_edge", [](Graph &g, int u, int v) { g.insertEdge(u, v); },
           py::arg("u"), py::arg("v"),
