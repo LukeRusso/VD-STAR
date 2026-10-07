@@ -292,3 +292,23 @@ TEST_CASE("graph: a reloaded DT-regime graph accepts the same mutations") {
     }
   }
 }
+
+TEST_CASE("graph: removing the last DT instance of a reloaded graph is safe") {
+  const std::string state = testTmpPath("dt_remove_last");
+
+  Graph g(3, dtRho, std::nullopt, 1);
+  g.insertEdge(1, 2);
+  g.insertEdge(2, 3);
+  g.insertEdge(1, 3);
+  requireDTRegime(g, 3);
+  REQUIRE(g.getDTInstanceNum() == 3);
+
+  GraphStore::write(g, state);
+  Graph h = GraphStore::read(state);
+
+  h.removeEdge(1, 3);
+
+  CHECK(h.getDTInstanceNum() == 2);
+  CHECK(h.getVertexPtr(1)->getAdjacentIndex(3) == -1);
+  CHECK(h.getVertexPtr(3)->getAdjacentIndex(1) == -1);
+}
