@@ -192,16 +192,17 @@ TEST_CASE("graph: loading into a non-empty graph is rejected") {
   CHECK_THROWS_AS(ar >> populated, std::runtime_error);
 }
 
-// The DT regime needs a denser graph than the tests above: n=10, span=5 pushes
-// endpoints past the large vertex threshold so DT instances are created
+// Explicitly define permutation number to trigger DT mechanism for small graphs
 static const int dtVertexNum = 10;
 static const int dtSpan = 5;
+static const int dtPermutationNum = 5;
+static const double dtRho = 0.1;
 
 TEST_CASE("graph: a DT-regime graph save -> load -> save is byte-identical") {
   const std::string first = testTmpPath("dt1");
   const std::string reloaded = testTmpPath("dt1_b");
 
-  Graph g(dtVertexNum, testRho);
+  Graph g(dtVertexNum, dtRho, std::nullopt, dtPermutationNum);
   buildSpanGraph(g, dtVertexNum, dtSpan);
   requireDTRegime(g, dtVertexNum);
 
@@ -217,7 +218,7 @@ TEST_CASE("graph: a DT-regime graph save -> load -> save is byte-identical") {
 TEST_CASE("graph: DT buckets and neighbour maps are rebuilt on load") {
   const std::string state = testTmpPath("dt2");
 
-  Graph g(dtVertexNum, testRho);
+  Graph g(dtVertexNum, dtRho, std::nullopt, dtPermutationNum);
   buildSpanGraph(g, dtVertexNum, dtSpan);
   requireDTRegime(g, dtVertexNum);
   GraphStore::write(g, state);
@@ -258,7 +259,7 @@ TEST_CASE("graph: DT buckets and neighbour maps are rebuilt on load") {
 TEST_CASE("graph: a reloaded DT-regime graph accepts the same mutations") {
   const std::string state = testTmpPath("dt3");
 
-  Graph g(dtVertexNum, testRho);
+  Graph g(dtVertexNum, dtRho, std::nullopt, dtPermutationNum);
   buildSpanGraph(g, dtVertexNum, dtSpan);
   requireDTRegime(g, dtVertexNum);
   GraphStore::write(g, state);

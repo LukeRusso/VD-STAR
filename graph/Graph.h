@@ -50,7 +50,8 @@ public:
    *  The constructor of Graph.
    */
   Graph(int _vertex_num, double _rho,
-        std::optional<unsigned long long> seed = std::nullopt);
+        std::optional<unsigned long long> seed = std::nullopt,
+        std::optional<int> permutation_num = std::nullopt);
 
   Graph(const Graph &) = delete;
   Graph &operator=(const Graph &) = delete;
@@ -179,7 +180,7 @@ protected:
   void computePermutationNumber(double rho) {
     int vertex_num = vList.size();
     int max = vertex_num;
-    int min = (int)ceil(1 / rho + 0.5);
+    int min = 0;
     int mid = 0;
     while (min <= max) {
       mid = min + (max - min) / 2;

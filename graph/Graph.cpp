@@ -6,7 +6,8 @@
 #include <utility>
 
 Graph::Graph(int _vertex_num, double _rho,
-             std::optional<unsigned long long> seed)
+             std::optional<unsigned long long> seed,
+             std::optional<int> permutation_num)
     : rho(_rho) {
   if (_vertex_num < 1) {
     throw std::out_of_range(
@@ -17,7 +18,16 @@ Graph::Graph(int _vertex_num, double _rho,
   for (int i = 0; i < _vertex_num; i++) {
     vList.push_back(std::make_unique<dynscan::Vertex>(i + 1));
   }
-  computePermutationNumber(omega * _rho);
+  if (permutation_num.has_value()) {
+    if (*permutation_num < 0) {
+      throw std::out_of_range(
+          "For Graph construction permutation_num must be >= 0, got " +
+          std::to_string(*permutation_num));
+    }
+    permutationNum = *permutation_num;
+  } else {
+    computePermutationNumber(omega * _rho);
+  }
   myJaccard =
       seed ? std::make_unique<Jaccard>((long double)_vertex_num, omega * rho,
                                        *seed)

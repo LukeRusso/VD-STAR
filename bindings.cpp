@@ -33,12 +33,16 @@ PYBIND11_MODULE(vdstar_core, m) {
         Vertex ids are 1-based, assigned by vdstar, and never reused after a
         vertex is removed.
         )doc")
-      .def(py::init<int, double, std::optional<unsigned long long>>(),
+      .def(py::init<int, double, std::optional<unsigned long long>,
+                    std::optional<int>>(),
            py::arg("n"), py::arg("rho") = 0.01, py::arg("seed") = py::none(),
+           py::arg("permutation_num") = py::none(),
            R"doc(Create a graph with n vertices, ids 1..n.
 
              rho:  approximation budget in (0, 1].
              seed: sampler seed, or None to seed randomly from the system.
+             permutation_num: large/small degree threshold, or None to derive
+             it from rho and n.
              )doc")
       .def(
           "add_vertex", [](Graph &g) { return g.addVertex()->id; },
