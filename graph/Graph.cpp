@@ -54,6 +54,10 @@ int Graph::insertEdge(int _vID1, int _vID2) {
   if (v1 == NULL || v2 == NULL) {
     throw std::out_of_range("Graph::insertEdge: endpoint is not a live vertex");
   }
+
+  v1->markDirty();
+  v2->markDirty();
+
   if (!v1->isLarge() && !v2->isLarge()) {
     if (v1->getDegree() >= permutationNum - 1 &&
         v2->getDegree() >= permutationNum - 1) {
@@ -85,6 +89,12 @@ int Graph::insertEdge(int _vID1, int _vID2) {
   return 0;
 }
 
+void Graph::insertEdges(const vector<pair<int, int>> &edges) {
+  for (const auto &edge : edges) {
+    insertEdge(edge.first, edge.second);
+  }
+}
+
 int Graph::removeEdge(int _vID1, int _vID2) {
   auto *v1 = getVertex(_vID1);
   auto *v2 = getVertex(_vID2);
@@ -94,6 +104,9 @@ int Graph::removeEdge(int _vID1, int _vID2) {
 
   if (v1->getAdjacentIndex(_vID2) == -1)
     return 1;
+
+  v1->markDirty();
+  v2->markDirty();
 
   const DTBucketElement *v1Element =
       v1->get_dt_bucket_element_by_neighbor_id(_vID2);
@@ -157,6 +170,8 @@ int Graph::insertBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {
       /// checkVertexDT()
       v1->increaseIntersectionCnt(i);
       v2->increaseIntersectionCnt(index);
+      neighbor_v->increaseIntersectionCnt(neighbor_v->getAdjacentIndex(vID1));
+      neighbor_v->increaseIntersectionCnt(neighbor_v->getAdjacentIndex(vID2));
     }
   }
 
@@ -185,6 +200,8 @@ int Graph::deleteBetweenSmall(dynscan::Vertex *v1, dynscan::Vertex *v2) {
     if (index != -1) {
       v1->decreaseIntersectionCnt(i);
       v2->decreaseIntersectionCnt(index);
+      neighbor_v->decreaseIntersectionCnt(neighbor_v->getAdjacentIndex(v1->id));
+      neighbor_v->decreaseIntersectionCnt(neighbor_v->getAdjacentIndex(v2->id));
     }
   }
   checkVertexDTBucket(v1);
@@ -211,6 +228,8 @@ int Graph::insertBetweenSmallAndLarge(dynscan::Vertex *v1,
       if (neighbor_v->isLarge())
         continue;
       v1->increaseIntersectionCnt(i);
+      neighbor_v->increaseIntersectionCnt(neighbor_v->getAdjacentIndex(vID1));
+      neighbor_v->increaseIntersectionCnt(neighbor_v->getAdjacentIndex(vID2));
     }
   }
   double jSimilarity = commonCnt / (double)(degree1 + degree2 + 4 - commonCnt);
@@ -246,6 +265,8 @@ int Graph::deleteBetweenSmallAndLarge(dynscan::Vertex *v1,
     // if neighbor vertex is a common neighbor of v1 and v2
     if (index != -1) {
       v1->decreaseIntersectionCnt(i);
+      neighbor_v->decreaseIntersectionCnt(neighbor_v->getAdjacentIndex(v1->id));
+      neighbor_v->decreaseIntersectionCnt(neighbor_v->getAdjacentIndex(v2->id));
     }
   }
   checkVertexDTBucket(v1);
@@ -435,9 +456,40 @@ int Graph::makeLarge(dynscan::Vertex *v) {
   return 0;
 }
 
+void Graph::refreshVertex(dynscan::Vertex *v) {
+  v->clearDirty();
+  if (v->isLarge()) {
+    // large vertices sim scores maintained by the DT structures
+    return;
+  }
+
+  const int degree = v->getDegree();
+  int *const neighbors = v->getAdjacentList();
+  for (int i = 0; i < degree; ++i) {
+    dynscan::Vertex *w = getVertex(neighbors[i]);
+    if (w == nullptr || w->isLarge()) {
+      continue;
+    }
+    const float score = myJaccard->compute_similarity(*v, *w);
+    if (score != v->getSimilarity(i)) {
+      v->updateNeighborSimScore(score, w->id);
+      w->updateNeighborSimScore(score, v->id);
+    }
+  }
+}
+
 vector<vector<int>> Graph::query(double eps, int mu) {
   MyVector<dynscan::Vertex *> cores;
   bool *isCore = new bool[vList.size() + 1]();
+
+  // refresh every dirty vertex before any expansion: a stale score on one side
+  // of an edge would otherwise be read before the other side has repaired it
+  for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
+    dynscan::Vertex *v = getVertex(i + 1);
+    if (v != nullptr && v->isDirty()) {
+      refreshVertex(v);
+    }
+  }
 
   for (int i = 0, vertex_number = vList.size(); i < vertex_number; i++) {
     dynscan::Vertex *v = getVertex(i + 1);

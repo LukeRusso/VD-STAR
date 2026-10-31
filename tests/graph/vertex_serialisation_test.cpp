@@ -99,6 +99,27 @@ TEST_CASE("duplicate sigma round-trips correctly (NOPtr/multimap ties)") {
   compareVertex(a, b);
 }
 
+TEST_CASE("dirty round-trips") {
+  const int id = 5;
+  const std::vector<int> nbrs{1, 2};
+  const std::vector<float> scores{0.5f, 0.25f};
+  const std::vector<int> counts{2, 2};
+  const std::string path = testTmpPath("vtx_dirty");
+
+  dynscan::Vertex dirty(id);
+  buildVertex(dirty, id, 0, false, nbrs, scores, counts);
+  dirty.markDirty();
+  dynscan::Vertex loadedDirty(scratchId);
+  roundTrip(dirty, loadedDirty, path);
+  CHECK(loadedDirty.isDirty());
+
+  dynscan::Vertex clean(id);
+  buildVertex(clean, id, 0, false, nbrs, scores, counts);
+  dynscan::Vertex loadedClean(scratchId);
+  roundTrip(clean, loadedClean, path);
+  CHECK_FALSE(loadedClean.isDirty());
+}
+
 TEST_CASE("save -> load -> save is byte-identical") {
   const int id = 8;
   const std::vector<int> nbrs{1, 2, 3};

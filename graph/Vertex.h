@@ -30,6 +30,9 @@ protected:
 
   bool is_large = false;
 
+  // Set by every edit, cleared once the query pass has refreshed the scores.
+  bool dirty = false;
+
   MyVector<int> adjacentList;
   MyVector<float> neighbor_node_sc;
   MyVector<int> intersectionCnt;
@@ -164,6 +167,15 @@ public:
     return intersectionCnt[_index];
   }
 
+  /**
+   * Return the stored similarity of the edge at given _index
+   * @param _index
+   * @return
+   */
+  inline float getSimilarity(const int &_index) const {
+    return neighbor_node_sc[_index];
+  }
+
   inline int increaseIntersectionCnt(const int &_index) {
     return ++intersectionCnt[_index];
   }
@@ -235,6 +247,12 @@ public:
    */
   inline const bool &isLarge() const { return is_large; };
 
+  inline bool isDirty() const { return dirty; }
+
+  inline void markDirty() { dirty = true; }
+
+  inline void clearDirty() { dirty = false; }
+
   template <class Archive>
   void serialize(Archive &ar, const unsigned int version);
 };
@@ -247,6 +265,7 @@ void Vertex::serialize(Archive &ar, const unsigned int) {
   ar & id;
   ar & updateCnt;
   ar & large;
+  ar & dirty;
   ar & degree;
 
   ar & adjacentList;

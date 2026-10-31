@@ -11,6 +11,7 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <boost/serialization/access.hpp>
@@ -64,6 +65,11 @@ public:
    *  Insert an edge to the graph.
    */
   int insertEdge(int _vID1, int _vID2);
+
+  /*
+   *  Insert every edge in the list, in order.
+   */
+  void insertEdges(const vector<pair<int, int>> &edges);
 
   /*
    *  Delete an edge from the graph.
@@ -164,6 +170,12 @@ protected:
   // *****************************************
 
   void checkVertexDTBucket(dynscan::Vertex *curVertex);
+
+  /**
+   * Recompute a vertex's small-small scores if an edit left them stale.
+   * @param v
+   */
+  void refreshVertex(dynscan::Vertex *v);
 
   /**
    * Re-attach every restored DT instance to its vertices buckets and
