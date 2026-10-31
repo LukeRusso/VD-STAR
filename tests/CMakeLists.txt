@@ -10,5 +10,6 @@ function(vdstar_test name)
   catch_discover_tests(${name})
 endfunction()
 
+add_subdirectory(dt)
 add_subdirectory(graph)
 add_subdirectory(MyLib)
