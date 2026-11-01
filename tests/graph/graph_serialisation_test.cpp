@@ -104,9 +104,9 @@ TEST_CASE("graph: removed vertices survive the round trip") {
     CAPTURE(id);
     compareVertex(*g.getVertexPtr(id), *h.getVertexPtr(id));
   }
-  // Removed vertices stay dead: insertEdge rejects an endpoint with no vertex.
-  CHECK_THROWS(h.insertEdge(removedA, 1));
-  CHECK_THROWS(h.insertEdge(1, removedB));
+  // Removed vertices stay dead
+  CHECK_FALSE(h.isLiveVertex(removedA));
+  CHECK_FALSE(h.isLiveVertex(removedB));
 }
 
 TEST_CASE("graph: a graph with every vertex removed round-trips") {
