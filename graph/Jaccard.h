@@ -7,6 +7,22 @@
 #include <sstream>
 #include <string>
 
+// The stored intersectionCnt only accurate for small-small edges, so a pair
+// with a large endpoint is counted from the side that is small.
+inline int exactIntersectionCount(const dynscan::Vertex &v,
+                                  const dynscan::Vertex &u) {
+  if (!u.isLarge()) {
+    return v.getIntersectionCnt(v.getAdjacentIndex(u.id));
+  }
+  int hits = 0;
+  for (int i = 0; i < v.getDegree(); ++i) {
+    if (u.has_neighbor(v.getNeighborID(i))) {
+      ++hits;
+    }
+  }
+  return 1 + hits;
+}
+
 class Jaccard {
   friend class boost::serialization::access;
 
@@ -122,18 +138,12 @@ public:
                                   const dynscan::Vertex &_u) {
 
     if (!_v.isLarge()) {
-      const int uid = _u.id;
-      const int index = _v.getAdjacentIndex(uid);
-      // get number of common neighbors between v1 and v2
-      const int common = _v.getIntersectionCnt(index);
+      const int common = exactIntersectionCount(_v, _u);
       const double jaccard =
           common / (double)(_v.getDegree() + _u.getDegree() + 2 - common);
       return jaccard;
     } else if (!_u.isLarge()) {
-      const int vid = _v.id;
-      const int index = _u.getAdjacentIndex(vid);
-      // get number of common neighbors between v1 and v2
-      const int common = _u.getIntersectionCnt(index);
+      const int common = exactIntersectionCount(_u, _v);
       const double jaccard =
           common / (double)(_v.getDegree() + _u.getDegree() + 2 - common);
       return jaccard;

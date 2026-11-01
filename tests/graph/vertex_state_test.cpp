@@ -112,6 +112,40 @@ TEST_CASE(
   }
 }
 
+TEST_CASE("vertex: similarity with a large neighbour is computed without its "
+          "intersection count") {
+  Graph g(10, 0.1, std::nullopt, 5);
+  buildSpanGraph(g, 10, 5);
+  requireDTRegime(g, 10);
+
+  const Adjacency adj = adjacencyOf(g, 10);
+  Jaccard jaccard(1000, 0.1, 42);
+  int stale = 0;
+
+  for (int v = 1; v <= 10; ++v) {
+    const dynscan::Vertex *vertex = g.getVertexPtr(v);
+    if (vertex->isLarge()) {
+      continue;
+    }
+    for (int i = 0; i < vertex->getDegree(); ++i) {
+      const int w = vertex->getNeighborID(i);
+      const dynscan::Vertex *other = g.getVertexPtr(w);
+      if (!other->isLarge()) {
+        continue;
+      }
+      if (vertex->getIntersectionCnt(i) == intersectionCount(adj, v, w)) {
+        continue;
+      }
+      ++stale;
+      INFO("edge " << v << "-" << w);
+      CHECK(jaccard.compute_similarity(*vertex, *other) ==
+            jaccardSimilarity(adj, v, w));
+    }
+  }
+
+  REQUIRE(stale > 0);
+}
+
 TEST_CASE("vertex: a small-large insert moves both copies of the shared edge") {
   // 1 and 2 reach the threshold on leaves before they meet, so their edge is
   // large-large and 11-1 is small-large with 3 shared by both endpoints
